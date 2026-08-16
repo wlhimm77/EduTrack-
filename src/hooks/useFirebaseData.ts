@@ -58,7 +58,15 @@ export function useFirebaseData<T>(collectionName: string, defaultData: T) {
         }
         for (const item of newData) {
           const { id, ...itemData } = item;
-          await setDoc(doc(db, `users/${user.uid}/${collectionName}/${id}`), itemData);
+          // Firestore does not allow undefined values, we must clean the object
+          const cleanData = Object.entries(itemData).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+              acc[key] = value;
+            }
+            return acc;
+          }, {} as Record<string, any>);
+          
+          await setDoc(doc(db, `users/${user.uid}/${collectionName}/${id}`), cleanData);
         }
       } else {
         // Record object mapping (Performance)
