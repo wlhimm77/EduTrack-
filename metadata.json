@@ -1,0 +1,6 @@
+{
+  "name": "EduTrack HK",
+  "description": "專為香港教師設計的響應式儀表板，可跨 iPad 和 iPhone 裝置追蹤課程進度、功課截止日期和學生表現。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
