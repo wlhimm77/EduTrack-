@@ -69,3 +69,25 @@ export interface CalendarEvent {
   type: CalendarEventType;
   description?: string;
 }
+
+export interface CloudBackup {
+  id: string;
+  createdAt: string; // ISO string
+  timestamp: number; // Unix timestamp for sorting
+  label: string;
+  isAuto: boolean;
+  summary: {
+    classesCount: number;
+    tasksCount: number;
+    perfCount: number;
+    templatesCount: number;
+    calendarCount: number;
+  };
+  data: {
+    classes: ClassGroup[];
+    tasks: Task[];
+    performance: Record<string, StudentPerformance[]>;
+    templates: SyllabusTemplate[];
+    calendarEvents: CalendarEvent[];
+  };
+}

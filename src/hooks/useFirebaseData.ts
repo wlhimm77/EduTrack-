@@ -10,10 +10,17 @@ export function useFirebaseData<T>(collectionName: string, defaultData: T) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubscribeSnapshot: (() => void) | null = null;
+
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+      }
+
       if (user) {
         const q = query(collection(db, `users/${user.uid}/${collectionName}`));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
           if (Array.isArray(defaultData)) {
             const items: any[] = [];
             snapshot.forEach((doc) => {
@@ -32,13 +39,18 @@ export function useFirebaseData<T>(collectionName: string, defaultData: T) {
           handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/${collectionName}`);
           setLoading(false);
         });
-        return () => unsubscribe();
       } else {
         setData(defaultData);
         setLoading(false);
       }
     });
-    return () => unsubscribeAuth();
+
+    return () => {
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
+      unsubscribeAuth();
+    };
   }, [collectionName]);
 
   const updateData = async (newDataOrUpdater: any) => {

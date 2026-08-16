@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { LayoutDashboard, BookOpen, CheckSquare, BarChart3, GraduationCap, FileText, ClipboardEdit } from 'lucide-react';
+import { LayoutDashboard, BookOpen, CheckSquare, BarChart3, FileText, ClipboardEdit, Settings } from 'lucide-react';
 import { cn } from '../utils';
 import { ClassGroup } from '../types';
 import { AuthStatus } from './AuthStatus';
@@ -19,6 +19,7 @@ export function Layout({ children, activeTab, setActiveTab, classes = [] }: Layo
     { id: 'tasks', label: '待辦事項', icon: CheckSquare },
     { id: 'grading', label: '成績輸入', icon: ClipboardEdit },
     { id: 'performance', label: '學生表現', icon: BarChart3 },
+    { id: 'settings', label: '設定', icon: Settings },
   ];
 
   return (
@@ -88,7 +89,9 @@ export function Layout({ children, activeTab, setActiveTab, classes = [] }: Layo
             </div>
             <h1 className="text-lg font-bold text-[#3D3833] tracking-tight font-serif">EduFlow</h1>
           </div>
-          <AuthStatus />
+          <div className="flex items-center gap-2">
+            <AuthStatus />
+          </div>
         </header>
         
         {/* Rendered Views */}
@@ -98,7 +101,7 @@ export function Layout({ children, activeTab, setActiveTab, classes = [] }: Layo
       </main>
 
       {/* Mobile/iPhone Bottom Tab Bar */}
-      <nav className="md:hidden fixed bottom-0 w-full bg-[#E9E3DB]/95 backdrop-blur-lg border-t border-[#D9CEC1] flex justify-around items-center pt-2 pb-6 px-2 z-40 shadow-[0_-8px_30px_rgba(0,0,0,0.04)]">
+      <nav className="md:hidden fixed bottom-0 w-full bg-[#E9E3DB]/95 backdrop-blur-lg border-t border-[#D9CEC1] flex justify-around items-center pt-2 pb-6 px-1 z-40 shadow-[0_-8px_30px_rgba(0,0,0,0.04)] overflow-x-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -107,7 +110,7 @@ export function Layout({ children, activeTab, setActiveTab, classes = [] }: Layo
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={cn(
-                "flex flex-col items-center gap-1 p-2 min-w-[64px] transition-colors",
+                "flex flex-col items-center gap-1 p-1.5 min-w-[48px] transition-colors shrink-0",
                 isActive ? "text-[#3D3833]" : "text-[#8E877F] hover:text-[#4A443F]"
               )}
             >
@@ -115,9 +118,9 @@ export function Layout({ children, activeTab, setActiveTab, classes = [] }: Layo
                 "p-1.5 rounded-full transition-all duration-200", 
                 isActive ? "bg-[#D9CEC1]" : "bg-transparent"
               )}>
-                <Icon className={cn("w-5 h-5", isActive ? "stroke-[2.5]" : "stroke-2")} />
+                <Icon className={cn("w-4 h-4", isActive ? "stroke-[2.5]" : "stroke-2")} />
               </div>
-              <span className="text-[10px] font-semibold">{item.label}</span>
+              <span className="text-[9px] font-semibold">{item.label}</span>
             </button>
           );
         })}

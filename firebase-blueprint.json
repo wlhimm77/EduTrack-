@@ -94,6 +94,9 @@
     "users/{userId}/calendarEvents/{eventId}": {
       "schema": { "$ref": "#/entities/CalendarEvent" },
       "description": "Calendar events belonging to a user"
+    },
+    "users/{userId}/cloudBackups/{backupId}": {
+      "description": "Automated and manual cloud backups for a user"
     }
   }
 }
