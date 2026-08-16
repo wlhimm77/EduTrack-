@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId);
+      
+      match /classes/{classId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(classId);
+      }
+      match /tasks/{taskId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(taskId);
+      }
+      match /performance/{assessmentKey} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(assessmentKey);
+      }
+      match /templates/{templateId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(templateId);
+      }
+      match /calendarEvents/{eventId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(eventId);
+      }
+    }
+  }
+}

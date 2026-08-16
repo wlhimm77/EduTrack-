@@ -14,47 +14,19 @@ import { mockClasses, mockTasks, mockPerformance, defaultTemplates, defaultCalen
 import { TemplatesView } from './components/TemplatesView';
 import { exportTaskToMasterSheet } from './lib/googleSheets';
 import { ClassGroup, Task, StudentPerformance, SyllabusTemplate, CalendarEvent } from './types';
+import { useFirebaseData } from './hooks/useFirebaseData';
+import { auth } from './firebase';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [classes, setClasses] = useState<ClassGroup[]>(() => {
-    const saved = localStorage.getItem('edutrack_classes_tc5');
-    return saved ? JSON.parse(saved) : mockClasses;
-  });
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = localStorage.getItem('edutrack_tasks_tc5');
-    return saved ? JSON.parse(saved) : mockTasks;
-  });
-  const [performance, setPerformance] = useState<Record<string, StudentPerformance[]>>(() => {
-    const saved = localStorage.getItem('edutrack_perf_tc5');
-    return saved ? JSON.parse(saved) : mockPerformance;
-  });
-  const [templates, setTemplates] = useState<SyllabusTemplate[]>(() => {
-    const saved = localStorage.getItem('edutrack_templates_tc5');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Merge in any new default templates the user doesn't have yet
-      const missingDefaults = defaultTemplates.filter(dt => !parsed.some((p: SyllabusTemplate) => p.id === dt.id));
-      return [...parsed, ...missingDefaults];
-    }
-    return defaultTemplates;
-  });
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(() => {
-    const saved = localStorage.getItem('edutrack_calendar_tc18');
-    return saved ? JSON.parse(saved) : defaultCalendarEvents;
-  });
-
-  // Save to local storage on change
-  useEffect(() => {
-    localStorage.setItem('edutrack_classes_tc5', JSON.stringify(classes));
-    localStorage.setItem('edutrack_tasks_tc5', JSON.stringify(tasks));
-    localStorage.setItem('edutrack_perf_tc5', JSON.stringify(performance));
-    localStorage.setItem('edutrack_templates_tc5', JSON.stringify(templates));
-    localStorage.setItem('edutrack_calendar_tc18', JSON.stringify(calendarEvents));
-  }, [classes, tasks, performance, templates, calendarEvents]);
+  const [classes, setClasses] = useFirebaseData<ClassGroup[]>('classes', mockClasses);
+  const [tasks, setTasks] = useFirebaseData<Task[]>('tasks', mockTasks);
+  const [performance, setPerformance] = useFirebaseData<Record<string, StudentPerformance[]>>('performance', mockPerformance);
+  const [templates, setTemplates] = useFirebaseData<SyllabusTemplate[]>('templates', defaultTemplates);
+  const [calendarEvents, setCalendarEvents] = useFirebaseData<CalendarEvent[]>('calendarEvents', defaultCalendarEvents);
 
   const updatePerformance = (assessmentKey: string, newPerformance: StudentPerformance[]) => {
-    setPerformance(prev => ({
+    setPerformance((prev: Record<string, StudentPerformance[]>) => ({
       ...prev,
       [assessmentKey]: newPerformance
     }));

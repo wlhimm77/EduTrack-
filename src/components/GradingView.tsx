@@ -106,7 +106,7 @@ export function GradingView({ tasks, classes, updateTaskGrades }: Props) {
                     return (
                       <div key={subject.id} className="ml-2 flex flex-col gap-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: subject.color }}></div>
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "bg-blue-100" }}></div>
                           <h4 className="text-xs font-bold text-[#8E877F]">{subject.name}</h4>
                         </div>
                         

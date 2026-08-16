@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { LayoutDashboard, BookOpen, CheckSquare, BarChart3, GraduationCap, FileText, ClipboardEdit } from 'lucide-react';
 import { cn } from '../utils';
 import { ClassGroup } from '../types';
+import { AuthStatus } from './AuthStatus';
 
 interface LayoutProps {
   children: ReactNode;
@@ -24,14 +25,19 @@ export function Layout({ children, activeTab, setActiveTab, classes = [] }: Layo
     <div className="flex h-screen bg-[#F9F6F2] text-[#4A443F] overflow-hidden font-sans selection:bg-[#E9E3DB] selection:text-[#3D3833]">
       {/* Desktop/iPad Sidebar */}
       <aside className="hidden md:flex flex-col w-64 bg-[#E9E3DB] border-r border-[#D9CEC1] h-full shrink-0 z-20">
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#88968A] flex items-center justify-center text-white font-bold shadow-sm">
-            HK
+        <div className="p-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#88968A] flex items-center justify-center text-white font-bold shadow-sm">
+              HK
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-sm font-bold uppercase tracking-wider text-[#3D3833]">EduFlow</h1>
+              <span className="text-[10px] opacity-70">香港中學教職員平台</span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-sm font-bold uppercase tracking-wider text-[#3D3833]">EduFlow</h1>
-            <span className="text-[10px] opacity-70">香港中學教職員平台</span>
-          </div>
+        </div>
+        <div className="px-6 pb-4">
+          <AuthStatus />
         </div>
         <nav className="flex-1 px-4 py-2 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
@@ -75,11 +81,14 @@ export function Layout({ children, activeTab, setActiveTab, classes = [] }: Layo
       {/* Main Content Area */}
       <main className="flex-1 h-full overflow-y-auto pb-24 md:pb-0 relative">
         {/* Mobile Header (iPhone) */}
-        <header className="md:hidden bg-[#E9E3DB]/90 backdrop-blur-md border-b border-[#D9CEC1] px-4 py-3 sticky top-0 z-30 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#88968A] flex items-center justify-center text-white font-bold text-xs shadow-sm">
-            HK
+        <header className="md:hidden bg-[#E9E3DB]/90 backdrop-blur-md border-b border-[#D9CEC1] px-4 py-3 sticky top-0 z-30 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#88968A] flex items-center justify-center text-white font-bold text-xs shadow-sm">
+              HK
+            </div>
+            <h1 className="text-lg font-bold text-[#3D3833] tracking-tight font-serif">EduFlow</h1>
           </div>
-          <h1 className="text-lg font-bold text-[#3D3833] tracking-tight font-serif">EduFlow</h1>
+          <AuthStatus />
         </header>
         
         {/* Rendered Views */}

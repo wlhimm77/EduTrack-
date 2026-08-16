@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" }
+      }
+    },
+    "ClassGroup": {
+      "title": "ClassGroup",
+      "description": "A class with subjects",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "form": { "type": "string", "maxLength": 50 },
+        "size": { "type": "number" },
+        "language": { "type": "string", "maxLength": 50 },
+        "subjects": { "type": "array" }
+      },
+      "required": ["name", "form"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "An assignment or task",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "subjectId": { "type": "string", "maxLength": 128 },
+        "dueDate": { "type": "string", "maxLength": 50 },
+        "type": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "maxLength": 20 },
+        "maxScore": { "type": "number" },
+        "grades": { "type": "array" }
+      },
+      "required": ["title", "classId", "subjectId", "dueDate", "type", "status"]
+    },
+    "Performance": {
+      "title": "Performance",
+      "description": "Performance records for a class assessment",
+      "type": "object",
+      "properties": {
+        "records": { "type": "array" }
+      }
+    },
+    "Template": {
+      "title": "Template",
+      "description": "A syllabus template",
+      "type": "object",
+      "properties": {
+        "form": { "type": "string", "maxLength": 50 },
+        "subject": { "type": "string", "maxLength": 100 },
+        "language": { "type": "string", "maxLength": 50 },
+        "topics": { "type": "array" }
+      },
+      "required": ["form", "subject"]
+    },
+    "CalendarEvent": {
+      "title": "CalendarEvent",
+      "description": "An event on the calendar",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "maxLength": 50 },
+        "title": { "type": "string", "maxLength": 200 },
+        "type": { "type": "string", "maxLength": 50 },
+        "description": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["date", "title", "type"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles"
+    },
+    "users/{userId}/classes/{classId}": {
+      "schema": { "$ref": "#/entities/ClassGroup" },
+      "description": "Classes belonging to a user"
+    },
+    "users/{userId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Tasks belonging to a user"
+    },
+    "users/{userId}/performance/{assessmentKey}": {
+      "schema": { "$ref": "#/entities/Performance" },
+      "description": "Performance records belonging to a user"
+    },
+    "users/{userId}/templates/{templateId}": {
+      "schema": { "$ref": "#/entities/Template" },
+      "description": "Templates belonging to a user"
+    },
+    "users/{userId}/calendarEvents/{eventId}": {
+      "schema": { "$ref": "#/entities/CalendarEvent" },
+      "description": "Calendar events belonging to a user"
+    }
+  }
+}
