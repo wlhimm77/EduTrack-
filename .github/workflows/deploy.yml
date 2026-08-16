@@ -2,7 +2,8 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ['main'] # 如果您的主分支叫 master，請將這裡改成 'master'
+    branches: ["main", "master"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -10,19 +11,18 @@ permissions:
   id-token: write
 
 jobs:
-  deploy:
+  build-and-deploy:
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Set up Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22   # <--- 升級到 Node 22 解決警告
-          # 移除了 cache: 'npm' 來解決 package-lock.json 找不到的錯誤
+          node-version: 20
       - name: Install dependencies
         run: npm install
       - name: Build
