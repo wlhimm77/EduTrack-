@@ -1,6 +1,19 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ClassGroup } from '../types';
-import { CheckSquare, Square, Plus, Edit2, Check, X, Trash2 } from 'lucide-react';
+import { 
+  CheckSquare, 
+  Square, 
+  Plus, 
+  Edit2, 
+  Check, 
+  X, 
+  Trash2, 
+  ChevronDown, 
+  ChevronRight, 
+  BookOpen, 
+  ChevronsUpDown,
+  Layers
+} from 'lucide-react';
 import { cn } from '../utils';
 import { ConfirmModal } from './ConfirmModal';
 
@@ -25,6 +38,9 @@ export function SyllabusView({ classes, toggleTopic, addClass, editClass, delete
   const [newClassForm, setNewClassForm] = useState('中一');
   const [newClassSubjects, setNewClassSubjects] = useState<string[]>([]);
   
+  // Collapsible class progress contents: default collapsed (empty record = all collapsed)
+  const [expandedClassIds, setExpandedClassIds] = useState<Record<string, boolean>>({});
+
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
   const [editClassName, setEditClassName] = useState('');
   const [editClassSize, setEditClassSize] = useState<number | ''>('');
@@ -58,6 +74,34 @@ export function SyllabusView({ classes, toggleTopic, addClass, editClass, delete
   const [activeFormTab, setActiveFormTab] = useState<string>(ALL_FORMS[0]);
 
   const filteredClasses = classes.filter(c => (c.form || '中一') === activeFormTab);
+
+  const toggleClassExpansion = (classId: string) => {
+    setExpandedClassIds(prev => ({
+      ...prev,
+      [classId]: !prev[classId]
+    }));
+  };
+
+  const expandAllInActiveForm = () => {
+    const next: Record<string, boolean> = { ...expandedClassIds };
+    filteredClasses.forEach(c => {
+      next[c.id] = true;
+    });
+    setExpandedClassIds(next);
+  };
+
+  const collapseAllInActiveForm = () => {
+    const next: Record<string, boolean> = { ...expandedClassIds };
+    filteredClasses.forEach(c => {
+      next[c.id] = false;
+    });
+    setExpandedClassIds(next);
+  };
+
+  const isAllExpanded = useMemo(() => {
+    if (filteredClasses.length === 0) return false;
+    return filteredClasses.every(c => !!expandedClassIds[c.id]);
+  }, [filteredClasses, expandedClassIds]);
 
   const handleAddClass = () => {
     if (newClassName.trim()) {
@@ -115,18 +159,33 @@ export function SyllabusView({ classes, toggleTopic, addClass, editClass, delete
 
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500">
-      <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-4 md:mb-8">
+      <header className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-4 md:mb-6">
         <div>
           <h2 className="text-2xl md:text-3xl font-serif font-bold text-[#3D3833]">課程涵蓋率</h2>
-          <p className="text-sm md:text-base text-[#8E877F] mt-1">追蹤各班級的教學進度及課題。</p>
+          <p className="text-sm md:text-base text-[#8E877F] mt-1">追蹤各班級的教學進度及課題（點擊班級標題或箭嘴展開/收起）。</p>
         </div>
-        <button 
-          onClick={() => setAddingClass(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#88968A] text-white rounded-full hover:opacity-90 transition-all font-medium text-sm shadow-sm hover:shadow-md"
-        >
-          <Plus className="w-4 h-4" />
-          新增班級
-        </button>
+        <div className="flex items-center gap-2">
+          {filteredClasses.length > 0 && (
+            <button
+              type="button"
+              id="btn-toggle-expand-all-classes"
+              onClick={isAllExpanded ? collapseAllInActiveForm : expandAllInActiveForm}
+              className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-[#FAF7F2] text-[#5D554D] border border-[#E9E3DB] rounded-full text-xs font-bold transition-all shadow-2xs cursor-pointer"
+            >
+              <ChevronsUpDown className="w-3.5 h-3.5 text-[#88968A]" />
+              <span>{isAllExpanded ? '全部收起' : '全部展開'}</span>
+            </button>
+          )}
+          <button 
+            type="button"
+            id="btn-add-new-class-group"
+            onClick={() => setAddingClass(true)}
+            className="flex items-center gap-2 px-5 py-2 bg-[#88968A] hover:bg-[#778579] text-white rounded-full transition-all font-bold text-xs shadow-2xs cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            新增班級
+          </button>
+        </div>
       </header>
 
       <div className="flex gap-2 border-b border-[#E9E3DB] mb-6 overflow-x-auto pb-px scrollbar-hide">
@@ -219,9 +278,9 @@ export function SyllabusView({ classes, toggleTopic, addClass, editClass, delete
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8">
+      <div className="space-y-6">
         {filteredClasses.length === 0 ? (
-          <div className="col-span-1 xl:col-span-2 text-center py-16 bg-white rounded-2xl border border-dashed border-[#D9CEC1]">
+          <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-[#D9CEC1]">
             <p className="text-[#8E877F] mb-4">這個年級目前沒有班級。</p>
             <button 
               onClick={() => {
@@ -312,225 +371,277 @@ export function SyllabusView({ classes, toggleTopic, addClass, editClass, delete
             );
           }
 
+          const isExpanded = !!expandedClassIds[c.id];
+          const totalClassTopics = c.subjects.reduce((sum, s) => sum + s.syllabus.length, 0);
+          const completedClassTopics = c.subjects.reduce((sum, s) => sum + s.syllabus.filter(t => t.completed).length, 0);
+          const classOverallPct = totalClassTopics > 0 ? Math.round((completedClassTopics / totalClassTopics) * 100) : 0;
+
           return (
           <div key={c.id} className="bg-white rounded-2xl shadow-sm border border-[#E9E3DB] overflow-hidden hover:shadow-md transition-shadow flex flex-col">
-            <div className="bg-[#F9F6F2] border-b border-[#E9E3DB] px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <h3 className="text-xl font-bold text-[#3D3833] tracking-tight">{c.name}</h3>
-                {c.form && <span className="px-2.5 py-1 bg-white border border-[#E9E3DB] rounded-md text-[11px] font-bold text-[#88968A]">{c.form}</span>}
-              </div>
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => {
-                    setEditingClassId(c.id);
-                    setEditClassName(c.name);
-                    setEditClassForm(c.form || '中一');
-                    setEditClassSize(c.size || '');
-                    setEditClassLanguage(c.language || '中文');
-                    setEditClassSubjects(c.subjects.map(s => s.name));
-                  }} 
-                  className="p-2 text-[#8E877F] hover:text-[#88968A] hover:bg-white rounded-lg transition-colors"
-                  title="編輯班級"
+            {/* Header: Clickable with small arrow chevron to expand/collapse */}
+            <div 
+              onClick={() => toggleClassExpansion(c.id)}
+              className="bg-[#F9F6F2] hover:bg-[#F3EFE9] border-b border-[#E9E3DB] px-5 py-4 flex items-center justify-between cursor-pointer transition-colors select-none group"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                {/* Small arrow (chevron) button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleClassExpansion(c.id);
+                  }}
+                  className={cn(
+                    "w-7 h-7 rounded-lg bg-white border border-[#E9E3DB] flex items-center justify-center text-[#5D554D] group-hover:border-[#88968A] group-hover:text-[#3D3833] transition-all shrink-0 shadow-2xs cursor-pointer",
+                    isExpanded && "bg-[#88968A]/10 border-[#88968A] text-[#88968A]"
+                  )}
+                  title={isExpanded ? "收起班級進度" : "展開班級進度"}
                 >
-                  <Edit2 size={16} />
+                  <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", !isExpanded && "-rotate-90 text-[#8E877F]")} />
                 </button>
-                <button 
-                  onClick={() => setClassToDelete(c.id)}
-                  className="p-2 text-[#8E877F] hover:text-red-500 hover:bg-white rounded-lg transition-colors"
-                  title="刪除班級"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-            <div className="p-6 md:p-8 flex-1 space-y-8">
-              {c.subjects.map((s, sIdx) => {
-                const completedCount = s.syllabus.filter(t => t.completed).length;
-                const totalCount = s.syllabus.length;
-                const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-                
-                const themeColor = sIdx % 2 === 0 ? "bg-[#88968A]" : "bg-[#C59B83]";
-                const textColor = sIdx % 2 === 0 ? "text-[#88968A]" : "text-[#C59B83]";
 
-                return (
-                  <div key={s.id} className="space-y-4">
-                    <div className="flex items-center justify-between mb-2">
-                      {editingSubjectId === s.id ? (
-                        <div className="flex items-center gap-2 flex-1 mr-4">
-                          <input 
-                            value={editSubjectName}
-                            onChange={e => setEditSubjectName(e.target.value)}
-                            className="flex-1 bg-[#F9F6F2] border border-[#E9E3DB] px-3 py-1.5 rounded-md text-[#3D3833] text-sm focus:outline-none focus:ring-2 focus:ring-[#88968A]"
-                            autoFocus
-                            onKeyDown={e => e.key === 'Enter' && handleEditSubject(c.id, s.id)}
-                          />
-                          <button onClick={() => handleEditSubject(c.id, s.id)} className="p-1.5 bg-[#88968A] text-white rounded-md"><Check size={14} /></button>
-                          <button onClick={() => setEditingSubjectId(null)} className="p-1.5 bg-[#F1EDE9] text-[#4A443F] rounded-md"><X size={14} /></button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <h4 className={cn("text-xs font-bold uppercase tracking-widest", textColor)}>{s.name}</h4>
-                          <button 
-                            onClick={() => {
-                              setEditingSubjectId(s.id);
-                              setEditSubjectName(s.name);
-                            }}
-                            className="text-[#D9CEC1] hover:text-[#88968A] transition-colors"
-                          >
-                            <Edit2 size={12} />
-                          </button>
-                        </div>
-                      )}
-                      <span className={cn("text-sm font-bold", textColor)}>{pct}%</span>
-                    </div>
-                    
-                    {/* Mini progress bar */}
-                    <div className="h-2 w-full bg-[#F1EDE9] rounded-full overflow-hidden mb-4">
-                      <div
-                        className={cn("h-full rounded-full transition-all duration-500 ease-out", themeColor)}
-                        style={{ width: `${pct}%` }}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-lg md:text-xl font-bold text-[#3D3833] tracking-tight">{c.name}</h3>
+                  {c.form && <span className="px-2 py-0.5 bg-white border border-[#E9E3DB] rounded-md text-[11px] font-bold text-[#88968A]">{c.form}</span>}
+                  {c.language && <span className="text-[10px] px-1.5 py-0.5 bg-stone-100 text-[#5D554D] rounded font-medium">{c.language}</span>}
+                  {c.size && <span className="text-[10px] text-[#8E877F]">{c.size}人</span>}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Overall Class Progress Badge */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[#8E877F] hidden sm:inline">{c.subjects.length} 個科目</span>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#E9E3DB] rounded-lg shadow-2xs">
+                    <div className="w-12 h-1.5 bg-[#F1EDE9] rounded-full overflow-hidden hidden xs:block">
+                      <div 
+                        className="h-full bg-[#88968A] rounded-full transition-all duration-300"
+                        style={{ width: `${classOverallPct}%` }}
                       />
                     </div>
-
-                    <div className="space-y-2">
-                      {s.syllabus.map(topic => (
-                        <div key={topic.id} className="flex flex-col gap-1 group">
-                          <div className="flex items-start gap-2">
-                            <button
-                              onClick={() => toggleTopic(c.id, s.id, topic.id)}
-                              className="flex items-start gap-3 flex-1 text-left p-2.5 rounded-xl hover:bg-[#F9F6F2] transition-colors"
-                            >
-                              <div className="shrink-0 mt-0.5">
-                                {topic.completed ? (
-                                  <CheckSquare className={cn("w-5 h-5", textColor)} />
-                                ) : (
-                                  <Square className="w-5 h-5 text-[#D9CEC1] transition-colors group-hover:text-[#88968A]" />
-                                )}
-                              </div>
-                              <span className={cn(
-                                "text-sm font-medium transition-colors mt-0.5",
-                                topic.completed ? "text-[#8E877F] line-through" : "text-[#4A443F] group-hover:text-[#3D3833]"
-                              )}>
-                                {topic.title}
-                              </span>
-                            </button>
-                            <button 
-                              onClick={() => {
-                                setEditingRemarksTopicId(topic.id);
-                                setTempRemarks(topic.remarks || '');
-                              }}
-                              className="p-2.5 mt-0.5 text-[#D9CEC1] hover:text-[#88968A] hover:bg-[#F9F6F2] rounded-lg opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                              title="新增/編輯備註"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button 
-                              onClick={() => setTopicToDelete({classId: c.id, subjectId: s.id, topicId: topic.id})}
-                              className="p-2.5 mt-0.5 text-[#D9CEC1] hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                              title="刪除課題"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                          
-                          {editingRemarksTopicId === topic.id ? (
-                            <div className="ml-10 flex items-center gap-2 mb-2">
-                              <input 
-                                value={tempRemarks}
-                                onChange={e => setTempRemarks(e.target.value)}
-                                placeholder="輸入備註..."
-                                className="flex-1 bg-[#F9F6F2] border border-[#E9E3DB] px-3 py-1.5 rounded-md text-[#3D3833] text-xs focus:outline-none focus:ring-2 focus:ring-[#88968A]"
-                                autoFocus
-                                onKeyDown={e => {
-                                  if (e.key === 'Enter') {
-                                    updateTopicRemarks(c.id, s.id, topic.id, tempRemarks);
-                                    setEditingRemarksTopicId(null);
-                                  }
-                                }}
-                              />
-                              <button 
-                                onClick={() => {
-                                  updateTopicRemarks(c.id, s.id, topic.id, tempRemarks);
-                                  setEditingRemarksTopicId(null);
-                                }} 
-                                className="p-1.5 bg-[#88968A] text-white rounded-md shrink-0"
-                              >
-                                <Check size={14} />
-                              </button>
-                              <button 
-                                onClick={() => setEditingRemarksTopicId(null)} 
-                                className="p-1.5 bg-[#F1EDE9] text-[#4A443F] rounded-md shrink-0"
-                              >
-                                <X size={14} />
-                              </button>
-                            </div>
-                          ) : topic.remarks ? (
-                            <div className="ml-11 mr-4 mb-2 text-xs text-[#8E877F] italic bg-[#F9F6F2] px-3 py-1.5 rounded-md border border-transparent hover:border-[#E9E3DB] transition-colors cursor-text group/remark" onClick={() => { setEditingRemarksTopicId(topic.id); setTempRemarks(topic.remarks!); }}>
-                              備註: {topic.remarks}
-                              <Edit2 size={10} className="inline ml-2 opacity-0 group-hover/remark:opacity-100" />
-                            </div>
-                          ) : null}
-                        </div>
-                      ))}
-
-                      {addingTopicId === s.id ? (
-                        <div className="flex items-center gap-2 mt-2 p-2.5">
-                          <input 
-                            value={newTopicTitle}
-                            onChange={e => setNewTopicTitle(e.target.value)}
-                            placeholder="輸入課題名稱..."
-                            className="flex-1 bg-[#F9F6F2] border border-[#E9E3DB] px-3 py-1.5 rounded-md text-[#3D3833] text-sm focus:outline-none focus:ring-2 focus:ring-[#88968A]"
-                            autoFocus
-                            onKeyDown={e => e.key === 'Enter' && handleAddTopic(c.id, s.id)}
-                          />
-                          <button onClick={() => handleAddTopic(c.id, s.id)} className="p-1.5 bg-[#88968A] text-white rounded-md"><Check size={14} /></button>
-                          <button onClick={() => setAddingTopicId(null)} className="p-1.5 bg-[#F1EDE9] text-[#4A443F] rounded-md"><X size={14} /></button>
-                        </div>
-                      ) : (
-                        <button 
-                          onClick={() => setAddingTopicId(s.id)}
-                          className="mt-2 text-xs text-[#8E877F] font-bold flex items-center gap-1.5 hover:text-[#4A443F] p-2 transition-colors rounded-lg hover:bg-[#F9F6F2]"
-                        >
-                          <Plus size={14}/> 新增課題
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {addingSubjectId === c.id ? (
-                <div className="mt-8 p-4 bg-[#F9F6F2] rounded-xl border border-[#E9E3DB]">
-                  <p className="text-xs font-bold uppercase tracking-widest text-[#8E877F] mb-3">新增科目</p>
-                  <div className="flex flex-col sm:flex-row items-center gap-2">
-                    <input 
-                      value={newSubjectName}
-                      onChange={e => setNewSubjectName(e.target.value)}
-                      placeholder="科目名稱 (例如: 中國歷史)"
-                      className="w-full sm:flex-1 bg-white border border-[#E9E3DB] px-3 py-2 rounded-md text-[#3D3833] text-sm focus:outline-none focus:ring-2 focus:ring-[#88968A]"
-                      autoFocus
-                      onKeyDown={e => e.key === 'Enter' && handleAddSubject(c.id)}
-                    />
-                    <div className="flex gap-2 w-full sm:w-auto">
-                      <button onClick={() => handleAddSubject(c.id)} className="flex-1 sm:flex-none px-4 py-2 bg-[#88968A] text-white rounded-md text-sm font-medium">儲存</button>
-                      <button onClick={() => setAddingSubjectId(null)} className="flex-1 sm:flex-none px-4 py-2 bg-white text-[#4A443F] border border-[#E9E3DB] rounded-md text-sm font-medium">取消</button>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button onClick={() => setNewSubjectName('歷史')} className="text-[10px] px-2.5 py-1 bg-white border border-[#E9E3DB] text-[#8E877F] rounded hover:border-[#88968A] hover:text-[#88968A]">歷史</button>
-                    <button onClick={() => setNewSubjectName('中國歷史')} className="text-[10px] px-2.5 py-1 bg-white border border-[#E9E3DB] text-[#8E877F] rounded hover:border-[#88968A] hover:text-[#88968A]">中國歷史</button>
-                    <button onClick={() => setNewSubjectName('經濟')} className="text-[10px] px-2.5 py-1 bg-white border border-[#E9E3DB] text-[#8E877F] rounded hover:border-[#88968A] hover:text-[#88968A]">經濟</button>
+                    <span className="text-xs font-bold text-[#3D3833]">{classOverallPct}%</span>
                   </div>
                 </div>
-              ) : (
-                <button 
-                  onClick={() => setAddingSubjectId(c.id)}
-                  className="mt-6 w-full py-4 border-2 border-dashed border-[#E9E3DB] rounded-xl text-sm text-[#88968A] font-bold flex items-center justify-center gap-2 hover:bg-[#F9F6F2] hover:border-[#D9CEC1] transition-all"
-                >
-                  <Plus size={16}/> 新增科目
-                </button>
-              )}
+
+                <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setEditingClassId(c.id);
+                      setEditClassName(c.name);
+                      setEditClassForm(c.form || '中一');
+                      setEditClassSize(c.size || '');
+                      setEditClassLanguage(c.language || '中文');
+                      setEditClassSubjects(c.subjects.map(s => s.name));
+                    }} 
+                    className="p-1.5 text-[#8E877F] hover:text-[#88968A] hover:bg-white rounded-lg transition-colors cursor-pointer"
+                    title="編輯班級"
+                  >
+                    <Edit2 size={15} />
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setClassToDelete(c.id)}
+                    className="p-1.5 text-[#8E877F] hover:text-red-500 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                    title="刪除班級"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
             </div>
+
+            {/* Collapsible Content: Hidden by default */}
+            {isExpanded && (
+              <div className="p-6 md:p-8 flex-1 space-y-8 animate-in fade-in slide-in-from-top-1 duration-200">
+                {c.subjects.map((s, sIdx) => {
+                  const completedCount = s.syllabus.filter(t => t.completed).length;
+                  const totalCount = s.syllabus.length;
+                  const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+                  
+                  const themeColor = sIdx % 2 === 0 ? "bg-[#88968A]" : "bg-[#C59B83]";
+                  const textColor = sIdx % 2 === 0 ? "text-[#88968A]" : "text-[#C59B83]";
+
+                  return (
+                    <div key={s.id} className="space-y-4">
+                      <div className="flex items-center justify-between mb-2">
+                        {editingSubjectId === s.id ? (
+                          <div className="flex items-center gap-2 flex-1 mr-4">
+                            <input 
+                              value={editSubjectName}
+                              onChange={e => setEditSubjectName(e.target.value)}
+                              className="flex-1 bg-[#F9F6F2] border border-[#E9E3DB] px-3 py-1.5 rounded-md text-[#3D3833] text-sm focus:outline-none focus:ring-2 focus:ring-[#88968A]"
+                              autoFocus
+                              onKeyDown={e => e.key === 'Enter' && handleEditSubject(c.id, s.id)}
+                            />
+                            <button onClick={() => handleEditSubject(c.id, s.id)} className="p-1.5 bg-[#88968A] text-white rounded-md"><Check size={14} /></button>
+                            <button onClick={() => setEditingSubjectId(null)} className="p-1.5 bg-[#F1EDE9] text-[#4A443F] rounded-md"><X size={14} /></button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <h4 className={cn("text-xs font-bold uppercase tracking-widest", textColor)}>{s.name}</h4>
+                            <button 
+                              onClick={() => {
+                                setEditingSubjectId(s.id);
+                                setEditSubjectName(s.name);
+                              }}
+                              className="text-[#D9CEC1] hover:text-[#88968A] transition-colors"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                          </div>
+                        )}
+                        <span className={cn("text-sm font-bold", textColor)}>{pct}%</span>
+                      </div>
+                      
+                      {/* Mini progress bar */}
+                      <div className="h-2 w-full bg-[#F1EDE9] rounded-full overflow-hidden mb-4">
+                        <div
+                          className={cn("h-full rounded-full transition-all duration-500 ease-out", themeColor)}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        {s.syllabus.map(topic => (
+                          <div key={topic.id} className="flex flex-col gap-1 group">
+                            <div className="flex items-start gap-2">
+                              <button
+                                onClick={() => toggleTopic(c.id, s.id, topic.id)}
+                                className="flex items-start gap-3 flex-1 text-left p-2.5 rounded-xl hover:bg-[#F9F6F2] transition-colors"
+                              >
+                                <div className="shrink-0 mt-0.5">
+                                  {topic.completed ? (
+                                    <CheckSquare className={cn("w-5 h-5", textColor)} />
+                                  ) : (
+                                    <Square className="w-5 h-5 text-[#D9CEC1] transition-colors group-hover:text-[#88968A]" />
+                                  )}
+                                </div>
+                                <span className={cn(
+                                  "text-sm font-medium transition-colors mt-0.5",
+                                  topic.completed ? "text-[#8E877F] line-through" : "text-[#4A443F] group-hover:text-[#3D3833]"
+                                )}>
+                                  {topic.title}
+                                </span>
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setEditingRemarksTopicId(topic.id);
+                                  setTempRemarks(topic.remarks || '');
+                                }}
+                                className="p-2.5 mt-0.5 text-[#D9CEC1] hover:text-[#88968A] hover:bg-[#F9F6F2] rounded-lg opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                                title="新增/編輯備註"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button 
+                                onClick={() => setTopicToDelete({classId: c.id, subjectId: s.id, topicId: topic.id})}
+                                className="p-2.5 mt-0.5 text-[#D9CEC1] hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                                title="刪除課題"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                            
+                            {editingRemarksTopicId === topic.id ? (
+                              <div className="ml-10 flex items-center gap-2 mb-2">
+                                <input 
+                                  value={tempRemarks}
+                                  onChange={e => setTempRemarks(e.target.value)}
+                                  placeholder="輸入備註..."
+                                  className="flex-1 bg-[#F9F6F2] border border-[#E9E3DB] px-3 py-1.5 rounded-md text-[#3D3833] text-xs focus:outline-none focus:ring-2 focus:ring-[#88968A]"
+                                  autoFocus
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                      updateTopicRemarks(c.id, s.id, topic.id, tempRemarks);
+                                      setEditingRemarksTopicId(null);
+                                    }
+                                  }}
+                                />
+                                <button 
+                                  onClick={() => {
+                                    updateTopicRemarks(c.id, s.id, topic.id, tempRemarks);
+                                    setEditingRemarksTopicId(null);
+                                  }} 
+                                  className="p-1.5 bg-[#88968A] text-white rounded-md shrink-0"
+                                >
+                                  <Check size={14} />
+                                </button>
+                                <button 
+                                  onClick={() => setEditingRemarksTopicId(null)} 
+                                  className="p-1.5 bg-[#F1EDE9] text-[#4A443F] rounded-md shrink-0"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : topic.remarks ? (
+                              <div className="ml-11 mr-4 mb-2 text-xs text-[#8E877F] italic bg-[#F9F6F2] px-3 py-1.5 rounded-md border border-transparent hover:border-[#E9E3DB] transition-colors cursor-text group/remark" onClick={() => { setEditingRemarksTopicId(topic.id); setTempRemarks(topic.remarks!); }}>
+                                備註: {topic.remarks}
+                                <Edit2 size={10} className="inline ml-2 opacity-0 group-hover/remark:opacity-100" />
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
+
+                        {addingTopicId === s.id ? (
+                          <div className="flex items-center gap-2 mt-2 p-2.5">
+                            <input 
+                              value={newTopicTitle}
+                              onChange={e => setNewTopicTitle(e.target.value)}
+                              placeholder="輸入課題名稱..."
+                              className="flex-1 bg-[#F9F6F2] border border-[#E9E3DB] px-3 py-1.5 rounded-md text-[#3D3833] text-sm focus:outline-none focus:ring-2 focus:ring-[#88968A]"
+                              autoFocus
+                              onKeyDown={e => e.key === 'Enter' && handleAddTopic(c.id, s.id)}
+                            />
+                            <button onClick={() => handleAddTopic(c.id, s.id)} className="p-1.5 bg-[#88968A] text-white rounded-md"><Check size={14} /></button>
+                            <button onClick={() => setAddingTopicId(null)} className="p-1.5 bg-[#F1EDE9] text-[#4A443F] rounded-md"><X size={14} /></button>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setAddingTopicId(s.id)}
+                            className="mt-2 text-xs text-[#8E877F] font-bold flex items-center gap-1.5 hover:text-[#4A443F] p-2 transition-colors rounded-lg hover:bg-[#F9F6F2]"
+                          >
+                            <Plus size={14}/> 新增課題
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {addingSubjectId === c.id ? (
+                  <div className="mt-8 p-4 bg-[#F9F6F2] rounded-xl border border-[#E9E3DB]">
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#8E877F] mb-3">新增科目</p>
+                    <div className="flex flex-col sm:flex-row items-center gap-2">
+                      <input 
+                        value={newSubjectName}
+                        onChange={e => setNewSubjectName(e.target.value)}
+                        placeholder="科目名稱 (例如: 中國歷史)"
+                        className="w-full sm:flex-1 bg-white border border-[#E9E3DB] px-3 py-2 rounded-md text-[#3D3833] text-sm focus:outline-none focus:ring-2 focus:ring-[#88968A]"
+                        autoFocus
+                        onKeyDown={e => e.key === 'Enter' && handleAddSubject(c.id)}
+                      />
+                      <div className="flex gap-2 w-full sm:w-auto">
+                        <button onClick={() => handleAddSubject(c.id)} className="flex-1 sm:flex-none px-4 py-2 bg-[#88968A] text-white rounded-md text-sm font-medium">儲存</button>
+                        <button onClick={() => setAddingSubjectId(null)} className="flex-1 sm:flex-none px-4 py-2 bg-white text-[#4A443F] border border-[#E9E3DB] rounded-md text-sm font-medium">取消</button>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button onClick={() => setNewSubjectName('歷史')} className="text-[10px] px-2.5 py-1 bg-white border border-[#E9E3DB] text-[#8E877F] rounded hover:border-[#88968A] hover:text-[#88968A]">歷史</button>
+                      <button onClick={() => setNewSubjectName('中國歷史')} className="text-[10px] px-2.5 py-1 bg-white border border-[#E9E3DB] text-[#8E877F] rounded hover:border-[#88968A] hover:text-[#88968A]">中國歷史</button>
+                      <button onClick={() => setNewSubjectName('經濟')} className="text-[10px] px-2.5 py-1 bg-white border border-[#E9E3DB] text-[#8E877F] rounded hover:border-[#88968A] hover:text-[#88968A]">經濟</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => setAddingSubjectId(c.id)}
+                    className="mt-6 w-full py-4 border-2 border-dashed border-[#E9E3DB] rounded-xl text-sm text-[#88968A] font-bold flex items-center justify-center gap-2 hover:bg-[#F9F6F2] hover:border-[#D9CEC1] transition-all cursor-pointer"
+                  >
+                    <Plus size={16}/> 新增科目
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           );
         })
