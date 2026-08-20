@@ -17,7 +17,8 @@ import {
   Task, 
   StudentPerformance, 
   SyllabusTemplate, 
-  CalendarEvent 
+  CalendarEvent,
+  TeacherTimetable
 } from '../types';
 
 const MAX_CLOUD_BACKUPS = 10;
@@ -29,11 +30,13 @@ interface UseCloudBackupsProps {
   performance: Record<string, StudentPerformance[]>;
   templates: SyllabusTemplate[];
   calendarEvents: CalendarEvent[];
+  timetable?: TeacherTimetable;
   setClasses: (val: any) => Promise<void> | void;
   setTasks: (val: any) => Promise<void> | void;
   setPerformance: (val: any) => Promise<void> | void;
   setTemplates: (val: any) => Promise<void> | void;
   setCalendarEvents: (val: any) => Promise<void> | void;
+  setTimetable?: (val: any) => Promise<void> | void;
 }
 
 export function useCloudBackups({
@@ -42,11 +45,13 @@ export function useCloudBackups({
   performance,
   templates,
   calendarEvents,
+  timetable,
   setClasses,
   setTasks,
   setPerformance,
   setTemplates,
   setCalendarEvents,
+  setTimetable,
 }: UseCloudBackupsProps) {
   const [user, setUser] = useState<User | null>(null);
   const [backups, setBackups] = useState<CloudBackup[]>([]);
@@ -61,6 +66,7 @@ export function useCloudBackups({
     performance,
     templates,
     calendarEvents,
+    timetable,
   });
 
   useEffect(() => {
@@ -70,8 +76,9 @@ export function useCloudBackups({
       performance,
       templates,
       calendarEvents,
+      timetable,
     };
-  }, [classes, tasks, performance, templates, calendarEvents]);
+  }, [classes, tasks, performance, templates, calendarEvents, timetable]);
 
   // Create a backup implementation
   const createBackup = useCallback(async (isAuto = true, customLabel?: string) => {
@@ -102,6 +109,7 @@ export function useCloudBackups({
           perfCount: Object.keys(current.performance || {}).length,
           templatesCount: current.templates?.length || 0,
           calendarCount: current.calendarEvents?.length || 0,
+          timetableLessonsCount: current.timetable?.lessons?.length || 0,
         },
         data: {
           classes: current.classes || [],
@@ -109,6 +117,7 @@ export function useCloudBackups({
           performance: current.performance || {},
           templates: current.templates || [],
           calendarEvents: current.calendarEvents || [],
+          timetable: current.timetable,
         }
       };
 
@@ -229,13 +238,14 @@ export function useCloudBackups({
       throw new Error('備份資料無效或損毀');
     }
 
-    const { classes: bClasses, tasks: bTasks, performance: bPerf, templates: bTemplates, calendarEvents: bCal } = backup.data;
+    const { classes: bClasses, tasks: bTasks, performance: bPerf, templates: bTemplates, calendarEvents: bCal, timetable: bTimetable } = backup.data;
 
     if (bClasses) await setClasses(bClasses);
     if (bTasks) await setTasks(bTasks);
     if (bPerf) await setPerformance(bPerf);
     if (bTemplates) await setTemplates(bTemplates);
     if (bCal) await setCalendarEvents(bCal);
+    if (bTimetable && setTimetable) await setTimetable(bTimetable);
   };
 
   // Delete a specific backup

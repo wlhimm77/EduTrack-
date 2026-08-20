@@ -68,6 +68,15 @@
         "description": { "type": "string", "maxLength": 1000 }
       },
       "required": ["date", "title", "type"]
+    },
+    "Timetable": {
+      "title": "Timetable",
+      "description": "Teacher timetable schedule with periods and lessons",
+      "type": "object",
+      "properties": {
+        "periods": { "type": "array" },
+        "lessons": { "type": "array" }
+      }
     }
   },
   "firestore": {
@@ -94,6 +103,10 @@
     "users/{userId}/calendarEvents/{eventId}": {
       "schema": { "$ref": "#/entities/CalendarEvent" },
       "description": "Calendar events belonging to a user"
+    },
+    "users/{userId}/timetable/{timetableId}": {
+      "schema": { "$ref": "#/entities/Timetable" },
+      "description": "Teacher timetable schedule belonging to a user"
     },
     "users/{userId}/cloudBackups/{backupId}": {
       "description": "Automated and manual cloud backups for a user"

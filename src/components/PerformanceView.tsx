@@ -1,9 +1,9 @@
 import { Task, ClassGroup } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, TrendingDown, Minus, Trophy, Users, Save, Loader2, ExternalLink } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Trophy, Users, Save, Loader2, ExternalLink, FileSpreadsheet } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { cn } from '../utils';
-import { saveMarksToSheet } from '../lib/googleSheets';
+import { exportComprehensiveAssessmentSheet } from '../lib/googleSheets';
 
 interface Props {
   tasks: Task[];
@@ -29,10 +29,18 @@ export function PerformanceView({ tasks, classes }: Props) {
   const [isSaving, setIsSaving] = useState(false);
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
 
+  const currentSubject = selectedClass?.subjects.find(s => s.id === selectedSubjectId);
+
+  // Relevant tasks for this class & subject
+  const subjectTasks = useMemo(() => {
+    if (!selectedClass || !selectedSubjectId) return [];
+    return tasks.filter(t => t.classId === selectedClassId && t.subjectId === selectedSubjectId);
+  }, [tasks, selectedClassId, selectedSubjectId, selectedClass]);
+
   const data = useMemo(() => {
     if (!selectedClass || !selectedSubjectId) return [];
 
-    const completedTasks = tasks.filter(t => t.classId === selectedClassId && t.subjectId === selectedSubjectId && t.status === 'completed' && t.maxScore);
+    const completedTasks = subjectTasks.filter(t => t.status === 'completed' && t.maxScore);
 
     const size = selectedClass.size || 30;
     const studentStats = Array.from({ length: size }, (_, i) => {
@@ -40,6 +48,7 @@ export function PerformanceView({ tasks, classes }: Props) {
         studentNumber: (i + 1).toString().padStart(2, '0'),
         totalPercent: 0,
         taskCount: 0,
+        scoresHistory: [] as number[],
         score: 0,
         trend: 'stable' as 'up' | 'down' | 'stable'
       };
@@ -47,22 +56,37 @@ export function PerformanceView({ tasks, classes }: Props) {
 
     completedTasks.forEach(task => {
       task.grades?.forEach(g => {
-        if (!g.missing && g.score !== null) {
+        if (!g.missing && g.score !== null && g.score !== undefined) {
           const stat = studentStats.find(s => s.studentNumber === g.studentNumber);
-          if (stat) {
-            stat.totalPercent += (g.score / task.maxScore!) * 100;
+          if (stat && task.maxScore) {
+            const percent = (Number(g.score) / task.maxScore) * 100;
+            stat.totalPercent += percent;
             stat.taskCount += 1;
+            stat.scoresHistory.push(percent);
           }
         }
       });
     });
 
-    return studentStats.map(stat => ({
-      studentNumber: stat.studentNumber,
-      score: stat.taskCount > 0 ? Math.round(stat.totalPercent / stat.taskCount) : 0,
-      trend: stat.score >= 80 ? 'up' : stat.score < 50 ? 'down' : 'stable'
-    })).filter(s => s.score > 0);
-  }, [tasks, selectedClassId, selectedSubjectId, selectedClass]);
+    return studentStats.map(stat => {
+      const avg = stat.taskCount > 0 ? Math.round(stat.totalPercent / stat.taskCount) : 0;
+      let trend: 'up' | 'down' | 'stable' = 'stable';
+      if (stat.scoresHistory.length >= 2) {
+        const diff = stat.scoresHistory[stat.scoresHistory.length - 1] - stat.scoresHistory[0];
+        if (diff >= 5) trend = 'up';
+        else if (diff <= -5) trend = 'down';
+      } else if (stat.taskCount > 0) {
+        trend = avg >= 80 ? 'up' : avg < 50 ? 'down' : 'stable';
+      }
+
+      return {
+        studentNumber: stat.studentNumber,
+        score: avg,
+        taskCount: stat.taskCount,
+        trend
+      };
+    }).filter(s => s.score > 0 || s.taskCount > 0);
+  }, [subjectTasks, selectedClassId, selectedSubjectId, selectedClass]);
 
   const classAvg = data.length > 0 
     ? Math.round(data.reduce((acc, curr) => acc + curr.score, 0) / data.length)
@@ -73,15 +97,20 @@ export function PerformanceView({ tasks, classes }: Props) {
     : 0;
 
   const handleExportToSheets = async () => {
+    if (!selectedClass || !currentSubject) return;
     try {
       setIsSaving(true);
       setSheetUrl(null);
-      const title = `${selectedClass?.name} - ${selectedClass?.subjects.find(s => s.id === selectedSubjectId)?.name} 表現`;
-      const url = await saveMarksToSheet(title, data);
+      const url = await exportComprehensiveAssessmentSheet({
+        classGroup: selectedClass,
+        subjectName: currentSubject.name,
+        tasks
+      });
       setSheetUrl(url);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save to Google Sheets:', error);
-      alert('匯出至 Google Sheets 失敗，請重試。');
+      const errMsg = error?.message || (typeof error === 'string' ? error : '未知錯誤');
+      alert(`匯出至 Google Sheets 失敗：${errMsg}`);
     } finally {
       setIsSaving(false);
     }
@@ -196,25 +225,30 @@ export function PerformanceView({ tasks, classes }: Props) {
         {data.length > 0 && (
           <div className="mt-8 pt-8 border-t border-[#E9E3DB]">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-              <h4 className="text-xs font-bold uppercase tracking-widest text-[#8E877F]">學生洞察分析</h4>
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-[#8E877F]">學生洞察分析</h4>
+                <p className="text-xs text-[#8E877F] mt-0.5">匯出專屬試算表（含每項評估成績、平均百分比及學生趨勢）</p>
+              </div>
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 {sheetUrl && (
                   <a 
+                    id="link-view-exported-sheet"
                     href={sheetUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-sm font-medium transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 rounded-lg text-sm font-semibold transition-colors shadow-xs"
                   >
-                    <ExternalLink size={16} /> 已匯出
+                    <ExternalLink size={16} /> 開啟已匯出試算表
                   </a>
                 )}
                 <button
+                  id="btn-export-comprehensive-sheet"
                   onClick={handleExportToSheets}
                   disabled={isSaving}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-[#F9F6F2] text-[#4A443F] border border-[#E9E3DB] hover:bg-[#E9E3DB] hover:border-[#D9CEC1] rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-[#88968A] hover:bg-[#78857a] text-white border border-transparent rounded-lg text-sm font-semibold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
                 >
-                  {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  {isSaving ? '儲存中...' : '儲存至 Google Sheets'}
+                  {isSaving ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16} />}
+                  <span>{isSaving ? '正在生成試算表...' : `匯出 ${selectedClass?.name} - ${currentSubject?.name || ''} 試算表`}</span>
                 </button>
               </div>
             </div>

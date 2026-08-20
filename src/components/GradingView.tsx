@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Task, ClassGroup, StudentGrade } from '../types';
-import { Check, ChevronRight, Save, ClipboardEdit, Loader2 } from 'lucide-react';
+import { Check, ChevronRight, Save, ClipboardEdit, Loader2, FileSpreadsheet, ExternalLink } from 'lucide-react';
 import { cn } from '../utils';
+import { exportSingleTaskSheet } from '../lib/googleSheets';
 
 interface Props {
   tasks: Task[];
@@ -16,6 +17,7 @@ export function GradingView({ tasks, classes, updateTaskGrades }: Props) {
   
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportedUrl, setExportedUrl] = useState<string | null>(null);
 
   const selectedTask = allDisplayTasks.find(t => t.id === selectedTaskId);
   const taskClass = selectedTask ? classes.find(c => c.id === selectedTask.classId) : null;
@@ -35,6 +37,7 @@ export function GradingView({ tasks, classes, updateTaskGrades }: Props) {
   const handleSelectTask = (task: Task, cls?: ClassGroup) => {
     setSelectedTaskId(task.id);
     setMaxScore(task.maxScore || '');
+    setExportedUrl(null);
     
     if (task.grades && task.grades.length > 0) {
       setGrades(task.grades);
@@ -61,10 +64,8 @@ export function GradingView({ tasks, classes, updateTaskGrades }: Props) {
 
   const handleSave = async (complete: boolean) => {
     if (selectedTaskId && typeof maxScore === 'number') {
-      if (complete) setIsExporting(true);
       await updateTaskGrades(selectedTaskId, maxScore, grades, complete);
       if (complete) {
-        setIsExporting(false);
         setSelectedTaskId(null);
       }
     }
@@ -255,11 +256,11 @@ export function GradingView({ tasks, classes, updateTaskGrades }: Props) {
                   </span>
                   <button 
                     onClick={() => handleSave(true)}
-                    disabled={maxScore === '' || isExporting}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-[#88968A] text-white rounded-lg hover:opacity-90 transition-all font-medium text-sm shadow-sm disabled:opacity-50"
+                    disabled={maxScore === ''}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-[#88968A] hover:bg-[#78857a] text-white rounded-lg transition-all font-medium text-sm shadow-sm disabled:opacity-50 cursor-pointer"
                   >
-                    {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                    {isExporting ? '匯出中...' : '完成輸入'}
+                    <Check size={16} />
+                    <span>完成並儲存</span>
                   </button>
                 </div>
               </>

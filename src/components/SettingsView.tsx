@@ -24,9 +24,10 @@ import {
   StudentPerformance, 
   SyllabusTemplate, 
   CalendarEvent, 
-  CloudBackup 
+  CloudBackup,
+  TeacherTimetable
 } from '../types';
-import { mockClasses, mockTasks, mockPerformance, defaultTemplates, defaultCalendarEvents } from '../data';
+import { mockClasses, mockTasks, mockPerformance, defaultTemplates, defaultCalendarEvents, defaultTimetable } from '../data';
 
 interface SettingsViewProps {
   user: User | null;
@@ -42,6 +43,8 @@ interface SettingsViewProps {
   setTemplates: (val: any) => Promise<void> | void;
   calendarEvents: CalendarEvent[];
   setCalendarEvents: (val: any) => Promise<void> | void;
+  timetable?: TeacherTimetable;
+  setTimetable?: (val: any) => Promise<void> | void;
   // Cloud Backup props
   cloudBackups: CloudBackup[];
   isBackingUp: boolean;
@@ -76,6 +79,8 @@ export function SettingsView({
   setTemplates,
   calendarEvents,
   setCalendarEvents,
+  timetable,
+  setTimetable,
   cloudBackups,
   isBackingUp,
   lastBackupTime,
@@ -191,6 +196,7 @@ export function SettingsView({
         performance,
         templates,
         calendarEvents,
+        timetable,
       };
 
       const jsonStr = JSON.stringify(backupData, null, 2);
@@ -237,6 +243,7 @@ export function SettingsView({
               if (parsed.performance) await setPerformance(parsed.performance);
               if (parsed.templates) await setTemplates(parsed.templates);
               if (parsed.calendarEvents) await setCalendarEvents(parsed.calendarEvents);
+              if (parsed.timetable && setTimetable) await setTimetable(parsed.timetable);
 
               setStatusMsg({ type: 'success', text: '✅ 成功還原所有 JSON 備份資料！' });
             } catch (err) {
@@ -301,6 +308,7 @@ export function SettingsView({
           await setPerformance(mockPerformance);
           await setTemplates(defaultTemplates);
           await setCalendarEvents(defaultCalendarEvents);
+          if (setTimetable) await setTimetable(defaultTimetable);
           setStatusMsg({ type: 'success', text: '✅ 已成功重設並載入標準預設範本！' });
         } catch (err) {
           setStatusMsg({ type: 'error', text: '重設失敗：' + String(err) });

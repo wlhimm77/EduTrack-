@@ -70,6 +70,29 @@ export interface CalendarEvent {
   description?: string;
 }
 
+export interface TimetablePeriod {
+  period: number;
+  name: string;
+  startTime: string; // e.g. "08:30"
+  endTime: string; // e.g. "09:15"
+  isBreak?: boolean;
+}
+
+export interface TimetableLesson {
+  id: string;
+  cycleDay: number; // 1 to 7
+  period: number; // 1 to 8
+  className: string; // e.g. "1A", "2A", "4A"
+  subjectName: string; // e.g. "歷史", "中國歷史"
+  room?: string; // e.g. "201 室", "歷史專室"
+  notes?: string;
+}
+
+export interface TeacherTimetable {
+  periods: TimetablePeriod[];
+  lessons: TimetableLesson[];
+}
+
 export interface CloudBackup {
   id: string;
   createdAt: string; // ISO string
@@ -82,6 +105,7 @@ export interface CloudBackup {
     perfCount: number;
     templatesCount: number;
     calendarCount: number;
+    timetableLessonsCount?: number;
   };
   data: {
     classes: ClassGroup[];
@@ -89,5 +113,6 @@ export interface CloudBackup {
     performance: Record<string, StudentPerformance[]>;
     templates: SyllabusTemplate[];
     calendarEvents: CalendarEvent[];
+    timetable?: TeacherTimetable;
   };
 }

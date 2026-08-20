@@ -1,4 +1,4 @@
-import { ClassGroup, Task, StudentPerformance, SyllabusTemplate, CalendarEvent } from './types';
+import { ClassGroup, Task, StudentPerformance, SyllabusTemplate, CalendarEvent, TeacherTimetable } from './types';
 
 export const defaultCalendarEvents: CalendarEvent[] = [
   { id: 'cal-sep-1', date: '2026-09-01', title: 'New School Year Opening', type: 'activity' },
@@ -480,10 +480,13 @@ export const mockClasses: ClassGroup[] = [
 ];
 
 export const mockTasks: Task[] = [
-  { id: 't1', title: '第二章數學工作紙', classId: 'c1', subjectId: 's1', dueDate: '2026-08-15', type: 'homework', status: 'pending' },
-  { id: 't2', title: '物理實驗報告', classId: 'c1', subjectId: 's2', dueDate: '2026-08-10', type: 'homework', status: 'overdue' },
-  { id: 't3', title: '英文模擬試卷一', classId: 'c2', subjectId: 's3', dueDate: '2026-08-20', type: 'exam', status: 'pending' },
-  { id: 't4', title: '提交 SBA 草稿分數', classId: 'c2', subjectId: 's3', dueDate: '2026-08-14', type: 'reminder', status: 'pending' },
+  { id: 't1', title: '第二章數學工作紙', classId: 'c1', subjectId: 's1', dueDate: '2026-08-18', type: '工作紙', status: 'pending' },
+  { id: 't2', title: '物理實驗報告（熱和氣體）', classId: 'c1', subjectId: 's2', dueDate: '2026-08-19', type: '家課', status: 'overdue' },
+  { id: 't3', title: '英文模擬試卷一（閱讀理解）', classId: 'c2', subjectId: 's3', dueDate: '2026-08-20', type: '小測', status: 'pending' },
+  { id: 't4', title: '中四數學一元二次方程小測', classId: 'c1', subjectId: 's1', dueDate: '2026-08-21', type: '小測', status: 'pending' },
+  { id: 't5', title: '中五英文 Vocabulary Dictation Unit 3', classId: 'c2', subjectId: 's3', dueDate: '2026-08-22', type: '默書', status: 'pending' },
+  { id: 't6', title: '中二歷史文藝復興課堂工作紙', classId: 'c3', subjectId: 's4', dueDate: '2026-08-23', type: '工作紙', status: 'pending' },
+  { id: 't7', title: '中四物理力和運動單元測驗', classId: 'c1', subjectId: 's2', dueDate: '2026-08-27', type: '小測', status: 'pending' },
 ];
 
 export const mockPerformance: Record<string, StudentPerformance[]> = {
@@ -508,3 +511,75 @@ export const mockPerformance: Record<string, StudentPerformance[]> = {
     { studentNumber: '04', score: 70, trend: 'down' },
   ]
 };
+
+export const defaultTimetable: TeacherTimetable = {
+  periods: [
+    { period: 1, name: '第 1 節', startTime: '08:25', endTime: '09:05' },
+    { period: 2, name: '第 2 節', startTime: '09:05', endTime: '09:45' },
+    { period: 3, name: '第 3 節', startTime: '10:00', endTime: '10:40' },
+    { period: 4, name: '第 4 節', startTime: '10:40', endTime: '11:20' },
+    { period: 5, name: '第 5 節', startTime: '11:35', endTime: '12:15' },
+    { period: 6, name: '第 6 節', startTime: '12:15', endTime: '12:55' },
+    { period: 7, name: '第 7 節', startTime: '14:10', endTime: '14:50' },
+    { period: 8, name: '第 8 節', startTime: '14:50', endTime: '15:30' },
+  ],
+  lessons: [
+    // === Day 1 ===
+    // 08:00-08:25 Pre-School Assembly
+    { id: 'tt-d1-p1', cycleDay: 1, period: 1, className: '2A', subjectName: 'CHIS 中史', room: '407 室' },
+    { id: 'tt-d1-p2', cycleDay: 1, period: 2, className: '3C', subjectName: 'HIST 歷史', room: '505 室' },
+    { id: 'tt-d1-p4', cycleDay: 1, period: 4, className: '2E', subjectName: 'CHIS 中史', room: '403 室' },
+    { id: 'tt-d1-p5', cycleDay: 1, period: 5, className: '2D', subjectName: 'CHIS 中史', room: '404 室' },
+
+    // === Day 2 ===
+    // 08:00-08:25 Pre-School Assembly
+    { id: 'tt-d2-p1', cycleDay: 2, period: 1, className: '2C', subjectName: 'CHIS 中史', room: '405 室' },
+    { id: 'tt-d2-p2', cycleDay: 2, period: 2, className: '3A', subjectName: 'HIST 歷史', room: '507 室' },
+    { id: 'tt-d2-p3', cycleDay: 2, period: 3, className: '2C', subjectName: 'HIST 歷史', room: '405 室' },
+    { id: 'tt-d2-p4', cycleDay: 2, period: 4, className: '2A', subjectName: 'HIST 歷史', room: '407 室' },
+    { id: 'tt-d2-p5', cycleDay: 2, period: 5, className: '2D', subjectName: 'HIST 歷史', room: '404 室' },
+    { id: 'tt-d2-p6', cycleDay: 2, period: 6, className: '1D', subjectName: 'CHIS 中史', room: '203 室' },
+
+    // === Day 3 ===
+    // 08:00-08:25 Pre-School Assembly
+    { id: 'tt-d3-p1', cycleDay: 3, period: 1, className: '1C', subjectName: 'CHIS 中史', room: '204 室' },
+    { id: 'tt-d3-p2', cycleDay: 3, period: 2, className: '2E', subjectName: 'CHIS 中史', room: '403 室' },
+    { id: 'tt-d3-p4', cycleDay: 3, period: 4, className: '2C', subjectName: 'CHIS 中史', room: '405 室' },
+    { id: 'tt-d3-p6', cycleDay: 3, period: 6, className: '2D', subjectName: 'CHIS 中史', room: '404 室' },
+    { id: 'tt-d3-p7', cycleDay: 3, period: 7, className: '1D', subjectName: 'HIST 歷史', room: '203 室' },
+    { id: 'tt-d3-p8', cycleDay: 3, period: 8, className: '1B', subjectName: 'HIST 歷史', room: '205 室' },
+
+    // === Day 4 ===
+    // 08:00-08:25 Pre-School Assembly
+    { id: 'tt-d4-p2', cycleDay: 4, period: 2, className: '1C', subjectName: 'HIST 歷史', room: '204 室' },
+    { id: 'tt-d4-p3', cycleDay: 4, period: 3, className: '3C', subjectName: 'HIST 歷史', room: '505 室' },
+    { id: 'tt-d4-p5', cycleDay: 4, period: 5, className: '2C', subjectName: 'HIST 歷史', room: '405 室' },
+    { id: 'tt-d4-p7', cycleDay: 4, period: 7, className: '1B', subjectName: 'CHIS 中史', room: '205 室' },
+
+    // === Day 5 ===
+    // 08:00-08:25 Pre-School Assembly
+    { id: 'tt-d5-p2', cycleDay: 5, period: 2, className: '2D', subjectName: 'CHIS 中史', room: '404 室' },
+    { id: 'tt-d5-p3', cycleDay: 5, period: 3, className: '1B', subjectName: 'HIST 歷史', room: '205 室' },
+    { id: 'tt-d5-p4', cycleDay: 5, period: 4, className: '2A', subjectName: 'HIST 歷史', room: '407 室' },
+    { id: 'tt-d5-p5', cycleDay: 5, period: 5, className: '2B', subjectName: 'HIST 歷史', room: '406 室' },
+    { id: 'tt-d5-p6', cycleDay: 5, period: 6, className: '2A', subjectName: 'CHIS 中史', room: '407 室' },
+    { id: 'tt-d5-p7', cycleDay: 5, period: 7, className: '1C', subjectName: 'CHIS 中史', room: '204 室' },
+
+    // === Day 6 ===
+    // 08:00-08:25 Pre-School Assembly
+    { id: 'tt-d6-p1', cycleDay: 6, period: 1, className: '2C', subjectName: 'CHIS 中史', room: '405 室' },
+    { id: 'tt-d6-p3', cycleDay: 6, period: 3, className: '2E', subjectName: 'CHIS 中史', room: '403 室' },
+    { id: 'tt-d6-p4', cycleDay: 6, period: 4, className: '2A', subjectName: 'CHIS 中史', room: '407 室' },
+    { id: 'tt-d6-p5', cycleDay: 6, period: 5, className: '1C', subjectName: 'HIST 歷史', room: '204 室' },
+    { id: 'tt-d6-p7', cycleDay: 6, period: 7, className: '1D', subjectName: 'CHIS 中史', room: '203 室' },
+
+    // === Day 7 ===
+    // 08:00-08:25 Pre-School Assembly
+    { id: 'tt-d7-p3', cycleDay: 7, period: 3, className: '3A', subjectName: 'HIST 歷史', room: '507 室' },
+    { id: 'tt-d7-p4', cycleDay: 7, period: 4, className: '2D', subjectName: 'HIST 歷史', room: '404 室' },
+    { id: 'tt-d7-p5', cycleDay: 7, period: 5, className: '1B', subjectName: 'CHIS 中史', room: '205 室' },
+    { id: 'tt-d7-p6', cycleDay: 7, period: 6, className: '1D', subjectName: 'HIST 歷史', room: '203 室' },
+    { id: 'tt-d7-p8', cycleDay: 7, period: 8, className: '2B', subjectName: 'HIST 歷史', room: '406 室' },
+  ]
+};
+

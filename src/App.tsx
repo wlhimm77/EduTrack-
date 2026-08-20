@@ -10,11 +10,10 @@ import { SyllabusView } from './components/SyllabusView';
 import { TasksView } from './components/TasksView';
 import { PerformanceView } from './components/PerformanceView';
 import { GradingView } from './components/GradingView';
-import { mockClasses, mockTasks, mockPerformance, defaultTemplates, defaultCalendarEvents } from './data';
+import { mockClasses, mockTasks, mockPerformance, defaultTemplates, defaultCalendarEvents, defaultTimetable } from './data';
 import { TemplatesView } from './components/TemplatesView';
 import { SettingsView } from './components/SettingsView';
-import { exportTaskToMasterSheet } from './lib/googleSheets';
-import { ClassGroup, Task, StudentPerformance, SyllabusTemplate, CalendarEvent } from './types';
+import { ClassGroup, Task, StudentPerformance, SyllabusTemplate, CalendarEvent, TeacherTimetable } from './types';
 import { useFirebaseData } from './hooks/useFirebaseData';
 import { useCloudBackups } from './hooks/useCloudBackups';
 import { auth } from './firebase';
@@ -30,6 +29,7 @@ export default function App() {
   const [performance, setPerformance] = useFirebaseData<Record<string, StudentPerformance[]>>('performance', mockPerformance);
   const [templates, setTemplates] = useFirebaseData<SyllabusTemplate[]>('templates', defaultTemplates);
   const [calendarEvents, setCalendarEvents] = useFirebaseData<CalendarEvent[]>('calendarEvents', defaultCalendarEvents);
+  const [timetable, setTimetable] = useFirebaseData<TeacherTimetable>('timetable', defaultTimetable);
 
   const {
     backups: cloudBackups,
@@ -45,11 +45,13 @@ export default function App() {
     performance,
     templates,
     calendarEvents,
+    timetable,
     setClasses,
     setTasks,
     setPerformance,
     setTemplates,
     setCalendarEvents,
+    setTimetable,
   });
 
   useEffect(() => {
@@ -155,22 +157,6 @@ export default function App() {
       if (t.id !== taskId) return t;
       return { ...t, maxScore, grades, status: complete ? 'completed' : t.status };
     }));
-
-    if (complete) {
-      const task = tasks.find(t => t.id === taskId);
-      if (task) {
-        const cls = classes.find(c => c.id === task.classId);
-        const subj = cls?.subjects.find(s => s.id === task.subjectId);
-        if (cls && subj) {
-          try {
-            await exportTaskToMasterSheet(task.title, cls.name, subj.name, grades, maxScore);
-            console.log('Successfully auto-exported to Google Sheets');
-          } catch (e) {
-            console.error('Failed to auto-export', e);
-          }
-        }
-      }
-    }
   };
 
   const addClass = (name: string, form: string, size?: number, language?: string, initialSubjects: string[] = []) => {
@@ -365,7 +351,9 @@ export default function App() {
           classes={classes} 
           tasks={tasks} 
           calendarEvents={calendarEvents}
+          timetable={timetable}
           setCalendarEvents={setCalendarEvents}
+          setTimetable={setTimetable}
           onNavigateTasks={() => setActiveTab('tasks')}
           onNavigateSyllabus={() => setActiveTab('syllabus')}
         />
@@ -431,6 +419,8 @@ export default function App() {
           setTemplates={setTemplates}
           calendarEvents={calendarEvents}
           setCalendarEvents={setCalendarEvents}
+          timetable={timetable}
+          setTimetable={setTimetable}
           cloudBackups={cloudBackups}
           isBackingUp={isBackingUp}
           lastBackupTime={lastBackupTime}
