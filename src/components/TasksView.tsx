@@ -23,7 +23,16 @@ export function TasksView({ tasks, classes, toggleTask, addTask, deleteTask }: P
   const [selectedClassFilter, setSelectedClassFilter] = useState<string>('all');
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
 
-  const taskTypes = ['筆記檢查', '家課', '小測', '默書', '工作紙'];
+  const taskTypes = ['筆記檢查', '家課', '小測', '默書', '工作紙', '課堂活動', '腦圖', '遊戲'];
+
+  const openAddTask = () => {
+    if (selectedClassFilter && selectedClassFilter !== 'all') {
+      setNewTaskClass(selectedClassFilter);
+    } else {
+      setNewTaskClass('');
+    }
+    setAddingTask(true);
+  };
 
   const handleAddTask = () => {
     if (newTaskTitle && newTaskClass && newTaskSubject && newTaskDueDate) {
@@ -56,7 +65,7 @@ export function TasksView({ tasks, classes, toggleTask, addTask, deleteTask }: P
           <p className="text-sm md:text-base text-[#8E877F] mt-1">管理各班級的評估與功課進度。</p>
         </div>
         <button 
-          onClick={() => setAddingTask(true)}
+          onClick={openAddTask}
           className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-[#88968A] text-white rounded-full hover:opacity-90 transition-all font-medium text-sm shadow-sm hover:shadow-md"
         >
           <Plus className="w-4 h-4" />
@@ -66,7 +75,7 @@ export function TasksView({ tasks, classes, toggleTask, addTask, deleteTask }: P
 
       {/* Mobile Add Task Button */}
       <button 
-        onClick={() => setAddingTask(true)}
+        onClick={openAddTask}
         className="md:hidden w-full flex justify-center items-center gap-2 px-5 py-3.5 mb-2 bg-[#88968A] text-white rounded-full hover:opacity-90 transition-all font-medium text-sm shadow-sm active:scale-[0.98]"
       >
         <Plus className="w-5 h-5" />

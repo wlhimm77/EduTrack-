@@ -220,6 +220,8 @@ export async function exportComprehensiveAssessmentSheet({
       const grade = task.grades?.find(g => g.studentNumber === studentNum);
       if (!grade) {
         row.push('---');
+      } else if (grade.absent) {
+        row.push('缺席 (Absent)');
       } else if (grade.missing) {
         row.push('欠交 (Missing)');
       } else if (grade.score !== null && grade.score !== undefined) {
@@ -264,6 +266,33 @@ export async function exportComprehensiveAssessmentSheet({
 
     rows.push(row);
   });
+
+  // Add Full Mark and Class Average rows
+  const fullMarkRow: (string | number)[] = ['滿分 (Full Mark)'];
+  const avgMarkRow: (string | number)[] = ['平均分 (Class Average)'];
+
+  relevantTasks.forEach(task => {
+    const max = task.maxScore || 100;
+    fullMarkRow.push(max);
+
+    let sum = 0;
+    let count = 0;
+    studentNumbers.forEach(studentNum => {
+      const grade = task.grades?.find(g => g.studentNumber === studentNum);
+      if (grade && !grade.absent && !grade.missing && grade.score !== null && grade.score !== undefined) {
+        sum += Number(grade.score);
+        count++;
+      }
+    });
+    const avg = count > 0 ? (Math.round((sum / count) * 10) / 10) : '---';
+    avgMarkRow.push(avg);
+  });
+
+  fullMarkRow.push('---', '---');
+  avgMarkRow.push('---', '---');
+
+  rows.push(fullMarkRow);
+  rows.push(avgMarkRow);
 
   // 2. Create new spreadsheet with explicit naming
   const spreadsheet = await gapi.client.sheets.spreadsheets.create({
@@ -328,6 +357,8 @@ export async function exportSingleTaskSheet(task: Task, classGroup: ClassGroup, 
     const grade = task.grades?.find(g => g.studentNumber === studentNum);
     if (!grade) {
       rows.push([studentNum, '---', '---', '未評分']);
+    } else if (grade.absent) {
+      rows.push([studentNum, '---', '---', '缺席 (Absent)']);
     } else if (grade.missing) {
       rows.push([studentNum, '---', '0%', '欠交 (Missing)']);
     } else if (grade.score !== null && grade.score !== undefined) {
@@ -338,6 +369,22 @@ export async function exportSingleTaskSheet(task: Task, classGroup: ClassGroup, 
       rows.push([studentNum, '---', '---', '未評分']);
     }
   });
+
+  // Calculate average score for single task
+  let sumScore = 0;
+  let gradedCount = 0;
+  studentNumbers.forEach(studentNum => {
+    const grade = task.grades?.find(g => g.studentNumber === studentNum);
+    if (grade && !grade.absent && !grade.missing && grade.score !== null && grade.score !== undefined) {
+      sumScore += Number(grade.score);
+      gradedCount++;
+    }
+  });
+  const avgScore = gradedCount > 0 ? (Math.round((sumScore / gradedCount) * 10) / 10) : '---';
+  const avgPercent = gradedCount > 0 && maxScore > 0 ? `${Math.round((Number(avgScore) / maxScore) * 100)}%` : '---';
+
+  rows.push(['滿分 (Full Mark)', maxScore, '100%', '---']);
+  rows.push(['平均分 (Class Average)', avgScore, avgPercent, `有效評分人數: ${gradedCount}`]);
 
   const spreadsheet = await gapi.client.sheets.spreadsheets.create({
     resource: {

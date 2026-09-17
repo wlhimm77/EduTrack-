@@ -48,14 +48,15 @@ export function GradingView({ tasks, classes, updateTaskGrades }: Props) {
         initialGrades.push({
           studentNumber: i.toString().padStart(2, '0'),
           score: null,
-          missing: false
+          missing: false,
+          absent: false
         });
       }
       setGrades(initialGrades);
     }
   };
 
-  const handleUpdateGrade = (studentNumber: string, field: 'score' | 'missing', value: any) => {
+  const handleUpdateGrade = (studentNumber: string, field: 'score' | 'missing' | 'absent', value: any) => {
     setGrades(prev => prev.map(g => {
       if (g.studentNumber !== studentNumber) return g;
       return { ...g, [field]: value };
@@ -207,30 +208,41 @@ export function GradingView({ tasks, classes, updateTaskGrades }: Props) {
 
                 <div className="flex-1 overflow-y-auto p-6">
                   <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {grades.map(grade => (
+                     {grades.map(grade => (
                       <div 
                         key={grade.studentNumber} 
                         className={cn(
                           "flex flex-col p-3 rounded-xl border transition-colors",
-                          grade.missing ? "bg-red-50 border-red-200" : "bg-[#F9F6F2] border-[#E9E3DB]"
+                          grade.absent ? "bg-blue-50 border-blue-200" : grade.missing ? "bg-red-50 border-red-200" : "bg-[#F9F6F2] border-[#E9E3DB]"
                         )}
                       >
                         <div className="flex items-center justify-between mb-2">
                            <span className={cn(
                             "text-sm font-bold",
-                            grade.missing ? "text-red-600" : "text-[#4A443F]"
+                            grade.absent ? "text-blue-600" : grade.missing ? "text-red-600" : "text-[#4A443F]"
                           )}>
                             {grade.studentNumber}
                           </span>
-                          <label className="flex items-center gap-1.5 cursor-pointer group">
-                            <input
-                              type="checkbox"
-                              checked={grade.missing}
-                              onChange={e => handleUpdateGrade(grade.studentNumber, 'missing', e.target.checked)}
-                              className="w-3.5 h-3.5 rounded text-red-500 focus:ring-red-500 border-gray-300"
-                            />
-                            <span className="text-[10px] text-[#8E877F] group-hover:text-red-500 transition-colors">欠交</span>
-                          </label>
+                          <div className="flex items-center gap-2">
+                            <label className="flex items-center gap-1 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                checked={!!grade.absent}
+                                onChange={e => handleUpdateGrade(grade.studentNumber, 'absent', e.target.checked)}
+                                className="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
+                              />
+                              <span className="text-[10px] text-[#8E877F] group-hover:text-blue-600 transition-colors">Absent</span>
+                            </label>
+                            <label className="flex items-center gap-1 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                checked={grade.missing}
+                                onChange={e => handleUpdateGrade(grade.studentNumber, 'missing', e.target.checked)}
+                                className="w-3.5 h-3.5 rounded text-red-500 focus:ring-red-500 border-gray-300"
+                              />
+                              <span className="text-[10px] text-[#8E877F] group-hover:text-red-500 transition-colors">欠交</span>
+                            </label>
+                          </div>
                         </div>
                         <input
                           type="number"
@@ -238,11 +250,10 @@ export function GradingView({ tasks, classes, updateTaskGrades }: Props) {
                           max={maxScore || undefined}
                           value={grade.score === null ? '' : grade.score}
                           onChange={e => handleUpdateGrade(grade.studentNumber, 'score', e.target.value === '' ? null : Number(e.target.value))}
-                          disabled={grade.missing}
-                          placeholder={grade.missing ? '---' : '成績'}
+                          placeholder={grade.absent ? '缺席' : grade.missing ? '補交分數' : '成績'}
                           className={cn(
                             "w-full bg-white border px-3 py-1.5 rounded-lg text-center font-medium focus:outline-none focus:ring-2 focus:ring-[#88968A]",
-                            grade.missing ? "border-red-200 text-red-400 opacity-60" : "border-[#E9E3DB] text-[#3D3833]"
+                            grade.absent ? "border-blue-300 text-blue-600 bg-blue-50/50" : grade.missing ? "border-red-300 text-red-600 bg-red-50/50" : "border-[#E9E3DB] text-[#3D3833]"
                           )}
                         />
                       </div>

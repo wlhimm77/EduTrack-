@@ -5,6 +5,7 @@ export interface StudentGrade {
   studentNumber: string;
   score: number | null;
   missing: boolean;
+  absent?: boolean;
 }
 
 export interface Task {

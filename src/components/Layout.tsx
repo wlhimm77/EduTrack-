@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { LayoutDashboard, BookOpen, CheckSquare, BarChart3, FileText, ClipboardEdit, Settings } from 'lucide-react';
+import { LayoutDashboard, BookOpen, CheckSquare, BarChart3, ClipboardEdit, Settings, AlertCircle } from 'lucide-react';
 import { cn } from '../utils';
 import { ClassGroup } from '../types';
 import { AuthStatus } from './AuthStatus';
@@ -15,8 +15,8 @@ export function Layout({ children, activeTab, setActiveTab, classes = [] }: Layo
   const navItems = [
     { id: 'dashboard', label: '儀表板', icon: LayoutDashboard },
     { id: 'syllabus', label: '課程進度', icon: BookOpen },
-    { id: 'templates', label: '預設進度', icon: FileText },
     { id: 'tasks', label: '待辦事項', icon: CheckSquare },
+    { id: 'missing', label: '欠交統計', icon: AlertCircle },
     { id: 'grading', label: '成績輸入', icon: ClipboardEdit },
     { id: 'performance', label: '學生表現', icon: BarChart3 },
     { id: 'settings', label: '設定', icon: Settings },

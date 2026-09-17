@@ -11,8 +11,8 @@ import { TasksView } from './components/TasksView';
 import { PerformanceView } from './components/PerformanceView';
 import { GradingView } from './components/GradingView';
 import { mockClasses, mockTasks, mockPerformance, defaultTemplates, defaultCalendarEvents, defaultTimetable } from './data';
-import { TemplatesView } from './components/TemplatesView';
 import { SettingsView } from './components/SettingsView';
+import { MissingHomeworkView } from './components/MissingHomeworkView';
 import { ClassGroup, Task, StudentPerformance, SyllabusTemplate, CalendarEvent, TeacherTimetable } from './types';
 import { useFirebaseData } from './hooks/useFirebaseData';
 import { useCloudBackups } from './hooks/useCloudBackups';
@@ -358,16 +358,6 @@ export default function App() {
           onNavigateSyllabus={() => setActiveTab('syllabus')}
         />
       )}
-      {activeTab === 'templates' && (
-        <TemplatesView
-          templates={templates}
-          addTemplate={addTemplate}
-          deleteTemplate={deleteTemplate}
-          addTemplateTopic={addTemplateTopic}
-          deleteTemplateTopic={deleteTemplateTopic}
-          editTemplateTopic={editTemplateTopic}
-        />
-      )}
       {activeTab === 'syllabus' && (
         <SyllabusView 
           classes={classes} 
@@ -389,6 +379,14 @@ export default function App() {
           toggleTask={toggleTask} 
           addTask={addTask} 
           deleteTask={deleteTask}
+        />
+      )}
+      {activeTab === 'missing' && (
+        <MissingHomeworkView
+          classes={classes}
+          tasks={tasks}
+          updateTaskGrades={updateTaskGrades}
+          setActiveTab={setActiveTab}
         />
       )}
       {activeTab === 'grading' && (
@@ -428,6 +426,11 @@ export default function App() {
           onCreateCloudBackup={createManualBackup}
           onRestoreCloudBackup={restoreBackup}
           onDeleteCloudBackup={deleteBackup}
+          addTemplate={addTemplate}
+          deleteTemplate={deleteTemplate}
+          addTemplateTopic={addTemplateTopic}
+          deleteTemplateTopic={deleteTemplateTopic}
+          editTemplateTopic={editTemplateTopic}
         />
       )}
     </Layout>

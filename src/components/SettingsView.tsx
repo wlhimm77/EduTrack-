@@ -28,6 +28,8 @@ import {
   TeacherTimetable
 } from '../types';
 import { mockClasses, mockTasks, mockPerformance, defaultTemplates, defaultCalendarEvents, defaultTimetable } from '../data';
+import { TemplatesView } from './TemplatesView';
+import { cn } from '../utils';
 
 interface SettingsViewProps {
   user: User | null;
@@ -53,6 +55,12 @@ interface SettingsViewProps {
   onCreateCloudBackup: () => Promise<void> | void;
   onRestoreCloudBackup: (backup: CloudBackup) => Promise<void> | void;
   onDeleteCloudBackup: (id: string) => Promise<void> | void;
+  // Templates Management props
+  addTemplate: (form: string, subject: string, language: string) => void;
+  deleteTemplate: (templateId: string) => void;
+  addTemplateTopic: (templateId: string, title: string) => void;
+  deleteTemplateTopic: (templateId: string, topicId: string) => void;
+  editTemplateTopic: (templateId: string, topicId: string, newTitle: string) => void;
 }
 
 interface ConfirmDialogState {
@@ -88,10 +96,16 @@ export function SettingsView({
   onCreateCloudBackup,
   onRestoreCloudBackup,
   onDeleteCloudBackup,
+  addTemplate,
+  deleteTemplate,
+  addTemplateTopic,
+  deleteTemplateTopic,
+  editTemplateTopic,
 }: SettingsViewProps) {
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [activeSettingTab, setActiveSettingTab] = useState<'backup' | 'templates'>('backup');
 
   // Format date helper
   const formatDate = (isoOrTs: string | number) => {
@@ -430,8 +444,36 @@ export function SettingsView({
         </div>
       )}
 
-      {/* 🚀 Automated Cloud Backup System Section */}
-      <div className="bg-white rounded-2xl border border-[#D9CEC1] p-6 shadow-xs space-y-5">
+      {/* Settings Sub-tabs */}
+      <div className="flex gap-2 border-b border-[#E9E3DB]">
+        <button
+          onClick={() => setActiveSettingTab('backup')}
+          className={cn(
+            "px-5 py-3 text-sm font-bold border-b-2 transition-all cursor-pointer",
+            activeSettingTab === 'backup'
+              ? "border-[#88968A] text-[#3D3833]"
+              : "border-transparent text-[#8E877F] hover:text-[#4A443F]"
+          )}
+        >
+          系統備份與雲端同步
+        </button>
+        <button
+          onClick={() => setActiveSettingTab('templates')}
+          className={cn(
+            "px-5 py-3 text-sm font-bold border-b-2 transition-all cursor-pointer",
+            activeSettingTab === 'templates'
+              ? "border-[#88968A] text-[#3D3833]"
+              : "border-transparent text-[#8E877F] hover:text-[#4A443F]"
+          )}
+        >
+          預設進度管理 ({templates.length})
+        </button>
+      </div>
+
+      {activeSettingTab === 'backup' ? (
+        <div className="space-y-6">
+          {/* 🚀 Automated Cloud Backup System Section */}
+          <div className="bg-white rounded-2xl border border-[#D9CEC1] p-6 shadow-xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E9E3DB]">
           <div className="flex items-center gap-2.5">
             <div className="p-2 bg-[#88968A]/15 text-[#88968A] rounded-lg">
@@ -752,6 +794,19 @@ export function SettingsView({
           所有重設、同步與覆蓋還原操作均設有強制二次確認對話框。系統每 30 分鐘自動保存最新的 10 份快照至雲端，確保您的教務資料永遠安全無虞。
         </div>
       </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-[#D9CEC1] p-6 shadow-xs">
+          <TemplatesView
+            templates={templates}
+            addTemplate={addTemplate}
+            deleteTemplate={deleteTemplate}
+            addTemplateTopic={addTemplateTopic}
+            deleteTemplateTopic={deleteTemplateTopic}
+            editTemplateTopic={editTemplateTopic}
+          />
+        </div>
+      )}
 
       {/* Double Confirmation Modal */}
       {confirmDialog && confirmDialog.isOpen && (
