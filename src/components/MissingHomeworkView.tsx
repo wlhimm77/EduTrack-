@@ -19,10 +19,14 @@ export function MissingHomeworkView({ classes, tasks, updateTaskGrades, setActiv
     ? classes 
     : classes.filter(c => c.id === selectedClassId);
 
-  // Helper to get missing or absent students for a task
+  // Helper to get missing or absent students for a task (exclude if a score/mark is already entered)
   const getMissingOrAbsentForTask = (task: Task) => {
     if (!task.grades || task.grades.length === 0) return [];
-    return task.grades.filter(g => g.missing || g.absent);
+    return task.grades.filter(g => {
+      const isMarked = g.missing || g.absent;
+      const hasScore = g.score !== null && g.score !== undefined && (g.score as unknown) !== '';
+      return isMarked && !hasScore;
+    });
   };
 
   // Toggle individual student missing status
