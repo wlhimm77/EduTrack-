@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Task, ClassGroup, StudentGrade } from '../types';
-import { Check, ChevronRight, Save, ClipboardEdit, Loader2, FileSpreadsheet, ExternalLink } from 'lucide-react';
+import { Check, ChevronRight, ChevronDown, Save, ClipboardEdit, Loader2, FileSpreadsheet, ExternalLink } from 'lucide-react';
 import { cn } from '../utils';
 import { exportSingleTaskSheet } from '../lib/googleSheets';
 
@@ -18,6 +18,41 @@ export function GradingView({ tasks, classes, updateTaskGrades }: Props) {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportedUrl, setExportedUrl] = useState<string | null>(null);
+
+  // Collapsible state for saved/completed assessments (hidden by default to save space)
+  const [allCompletedExpanded, setAllCompletedExpanded] = useState(false);
+  const [expandedCompletedSubjects, setExpandedCompletedSubjects] = useState<Record<string, boolean>>({});
+
+  const isSubjectExpanded = (subjectKey: string) => {
+    if (expandedCompletedSubjects[subjectKey] !== undefined) {
+      return expandedCompletedSubjects[subjectKey];
+    }
+    return allCompletedExpanded;
+  };
+
+  const toggleSubjectCompleted = (subjectKey: string) => {
+    setExpandedCompletedSubjects(prev => {
+      const current = isSubjectExpanded(subjectKey);
+      return { ...prev, [subjectKey]: !current };
+    });
+  };
+
+  const handleToggleAllCompleted = () => {
+    const next = !allCompletedExpanded;
+    setAllCompletedExpanded(next);
+    setExpandedCompletedSubjects({});
+  };
+
+  // If a completed task is selected, ensure its subject section is expanded
+  useEffect(() => {
+    if (selectedTaskId) {
+      const task = completedGradingTasks.find(t => t.id === selectedTaskId);
+      if (task) {
+        const key = `${task.classId}-${task.subjectId}`;
+        setExpandedCompletedSubjects(prev => ({ ...prev, [key]: true }));
+      }
+    }
+  }, [selectedTaskId]);
 
   const selectedTask = allDisplayTasks.find(t => t.id === selectedTaskId);
   const taskClass = selectedTask ? classes.find(c => c.id === selectedTask.classId) : null;
@@ -86,14 +121,39 @@ export function GradingView({ tasks, classes, updateTaskGrades }: Props) {
       ) : (
         <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 overflow-hidden">
           {/* Task List Sidebar */}
-          <div className="w-full lg:w-1/3 flex flex-col gap-6 overflow-y-auto pr-2">
+          <div className="w-full lg:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2">
+            {completedGradingTasks.length > 0 && (
+              <div className="flex items-center justify-between pb-2 border-b border-[#E9E3DB] shrink-0">
+                <div className="flex items-center gap-1.5 text-xs text-[#8E877F]">
+                  <span className="font-bold text-[#3D3833]">評估項目</span>
+                  <span>({gradingTasks.length} 待輸入)</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToggleAllCompleted}
+                  className="flex items-center gap-1 text-xs font-semibold text-[#88968A] hover:text-[#3D3833] transition-colors cursor-pointer px-2 py-1 rounded-md hover:bg-[#E9E3DB]/50"
+                  title={allCompletedExpanded ? "隱藏所有已儲存及已完成評估" : "展開所有已儲存及已完成評估"}
+                >
+                  <span>{allCompletedExpanded ? "隱藏已儲存評估" : "展開已儲存評估"}</span>
+                  <span className="bg-[#E9E3DB] text-[#4A443F] text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                    {completedGradingTasks.length}
+                  </span>
+                  {allCompletedExpanded ? (
+                    <ChevronDown size={14} className="text-[#88968A]" />
+                  ) : (
+                    <ChevronRight size={14} className="text-[#88968A]" />
+                  )}
+                </button>
+              </div>
+            )}
+
             {classes.map(cls => {
               // Get tasks for this class
               const classTasks = allDisplayTasks.filter(t => t.classId === cls.id);
               if (classTasks.length === 0) return null;
 
               return (
-                <div key={cls.id} className="flex flex-col gap-4">
+                <div key={cls.id} className="flex flex-col gap-3">
                   <h3 className="text-sm font-bold text-[#3D3833] border-b border-[#E9E3DB] pb-2 sticky top-0 bg-[#F9F6F2] z-10">
                     {cls.name}
                   </h3>
@@ -104,12 +164,21 @@ export function GradingView({ tasks, classes, updateTaskGrades }: Props) {
 
                     const grading = subjectTasks.filter(t => t.status === 'grading');
                     const completed = subjectTasks.filter(t => t.status === 'completed');
+                    const subjectKey = `${cls.id}-${subject.id}`;
+                    const isExpanded = isSubjectExpanded(subjectKey);
 
                     return (
-                      <div key={subject.id} className="ml-2 flex flex-col gap-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "bg-blue-100" }}></div>
-                          <h4 className="text-xs font-bold text-[#8E877F]">{subject.name}</h4>
+                      <div key={subject.id} className="ml-2 flex flex-col gap-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-[#88968A]"></div>
+                            <h4 className="text-xs font-bold text-[#8E877F]">{subject.name}</h4>
+                          </div>
+                          {grading.length > 0 && (
+                            <span className="text-[10px] font-bold text-[#88968A] bg-[#88968A]/10 px-1.5 py-0.5 rounded">
+                              {grading.length} 個待輸入
+                            </span>
+                          )}
                         </div>
                         
                         <div className="flex flex-col gap-2 pl-4 border-l-2 border-[#E9E3DB]/50">
@@ -120,7 +189,7 @@ export function GradingView({ tasks, classes, updateTaskGrades }: Props) {
                                 key={task.id}
                                 onClick={() => handleSelectTask(task, cls)}
                                 className={cn(
-                                  "flex flex-col text-left p-3 rounded-lg border transition-all text-sm",
+                                  "flex flex-col text-left p-3 rounded-lg border transition-all text-sm cursor-pointer",
                                   isSelected 
                                     ? "bg-[#3D3833] border-[#3D3833] text-white shadow-md" 
                                     : "bg-white border-[#E9E3DB] hover:border-[#88968A] text-[#3D3833]"
@@ -140,32 +209,63 @@ export function GradingView({ tasks, classes, updateTaskGrades }: Props) {
                             );
                           })}
 
-                          {completed.map(task => {
-                            const isSelected = selectedTaskId === task.id;
-                            return (
+                          {completed.length > 0 && (
+                            <div className="mt-1 flex flex-col gap-1.5">
                               <button
-                                key={task.id}
-                                onClick={() => handleSelectTask(task, cls)}
-                                className={cn(
-                                  "flex flex-col text-left p-3 rounded-lg border transition-all text-sm",
-                                  isSelected 
-                                    ? "bg-[#88968A] border-[#88968A] text-white shadow-md" 
-                                    : "bg-[#F9F6F2] border-[#E9E3DB] hover:border-[#88968A] text-[#3D3833] opacity-70 hover:opacity-100"
-                                )}
+                                type="button"
+                                onClick={() => toggleSubjectCompleted(subjectKey)}
+                                className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border border-[#E9E3DB]/80 bg-[#F9F6F2] hover:bg-[#EFE9DF] text-[#7D756C] hover:text-[#3D3833] transition-all text-xs cursor-pointer group"
                               >
-                                <span className="font-bold mb-1 truncate w-full">{task.title}</span>
-                                <div className="flex justify-between items-center w-full mt-1">
-                                  <span className={cn(
-                                    "text-[10px] uppercase font-bold px-2 py-0.5 rounded",
-                                    isSelected ? "bg-white/20" : "bg-white text-[#88968A] border border-[#E9E3DB]"
-                                  )}>
-                                    已儲存
+                                <div className="flex items-center gap-1.5 font-medium">
+                                  {isExpanded ? (
+                                    <ChevronDown size={14} className="text-[#88968A] transition-transform" />
+                                  ) : (
+                                    <ChevronRight size={14} className="text-[#8E877F] group-hover:text-[#3D3833] transition-transform" />
+                                  )}
+                                  <span>已儲存評估</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] bg-white text-[#88968A] border border-[#E9E3DB] font-bold px-1.5 py-0.2 rounded-full">
+                                    {completed.length}
                                   </span>
-                                  <ChevronRight size={14} className={isSelected ? "text-white" : "text-[#D9CEC1]"} />
+                                  <span className="text-[10px] text-[#A8A199]">
+                                    {isExpanded ? "收起" : "展開"}
+                                  </span>
                                 </div>
                               </button>
-                            );
-                          })}
+
+                              {isExpanded && (
+                                <div className="flex flex-col gap-2 pl-1.5 pt-1">
+                                  {completed.map(task => {
+                                    const isSelected = selectedTaskId === task.id;
+                                    return (
+                                      <button
+                                        key={task.id}
+                                        onClick={() => handleSelectTask(task, cls)}
+                                        className={cn(
+                                          "flex flex-col text-left p-3 rounded-lg border transition-all text-sm cursor-pointer",
+                                          isSelected 
+                                            ? "bg-[#88968A] border-[#88968A] text-white shadow-md" 
+                                            : "bg-[#F9F6F2] border-[#E9E3DB] hover:border-[#88968A] text-[#3D3833] opacity-80 hover:opacity-100"
+                                        )}
+                                      >
+                                        <span className="font-bold mb-1 truncate w-full">{task.title}</span>
+                                        <div className="flex justify-between items-center w-full mt-1">
+                                          <span className={cn(
+                                            "text-[10px] uppercase font-bold px-2 py-0.5 rounded",
+                                            isSelected ? "bg-white/20" : "bg-white text-[#88968A] border border-[#E9E3DB]"
+                                          )}>
+                                            已儲存
+                                          </span>
+                                          <ChevronRight size={14} className={isSelected ? "text-white" : "text-[#D9CEC1]"} />
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

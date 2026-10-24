@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { WifiOff, RefreshCw, X, CheckCircle2 } from 'lucide-react';
 import { Layout } from './components/Layout';
 import { DashboardView } from './components/DashboardView';
 import { SyllabusView } from './components/SyllabusView';
@@ -23,6 +24,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [user, setUser] = useState<User | null>(null);
   const [hasLocalData, setHasLocalData] = useState(false);
+
+  // Network and cloud sync detector state
+  const [isOnline, setIsOnline] = useState<boolean>(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
+  const [syncIssue, setSyncIssue] = useState<{ message: string; isQuota: boolean } | null>(null);
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+  const [isRetryingSync, setIsRetryingSync] = useState(false);
+  const [justReconnected, setJustReconnected] = useState(false);
 
   const [classes, setClasses] = useFirebaseData<ClassGroup[]>('classes', mockClasses);
   const [tasks, setTasks] = useFirebaseData<Task[]>('tasks', mockTasks);
@@ -71,6 +79,74 @@ export default function App() {
       setHasLocalData(true);
     }
   }, []);
+
+  // Network and Firebase connection detector
+  useEffect(() => {
+    let reconnectTimer: any = null;
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      setJustReconnected(true);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(() => {
+        setJustReconnected(false);
+      }, 4000);
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setIsBannerDismissed(false);
+      setJustReconnected(false);
+    };
+
+    const handleSyncError = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      setSyncIssue({
+        message: customEvent.detail?.friendlyMsg || customEvent.detail?.error || '雲端同步寫入失敗',
+        isQuota: !!customEvent.detail?.isQuota,
+      });
+      setIsBannerDismissed(false);
+    };
+
+    const handleSyncSuccess = () => {
+      setSyncIssue(null);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('edutrack-sync-error', handleSyncError);
+    window.addEventListener('edutrack-sync-success', handleSyncSuccess);
+
+    return () => {
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('edutrack-sync-error', handleSyncError);
+      window.removeEventListener('edutrack-sync-success', handleSyncSuccess);
+    };
+  }, []);
+
+  const handleRetrySync = () => {
+    setIsRetryingSync(true);
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      setIsOnline(true);
+      // Trigger updates across collection hooks so pending writes flush
+      setClasses((prev: any) => [...prev]);
+      setTasks((prev: any) => [...prev]);
+      setPerformance((prev: any) => ({ ...prev }));
+      setTemplates((prev: any) => [...prev]);
+      setCalendarEvents((prev: any) => [...prev]);
+      setTimetable((prev: any) => ({ ...prev }));
+      setTimeout(() => {
+        setIsRetryingSync(false);
+      }, 1000);
+    } else {
+      setIsOnline(false);
+      setTimeout(() => {
+        setIsRetryingSync(false);
+      }, 600);
+    }
+  };
 
   const handleMigrate = async () => {
     if (!user) {
@@ -304,6 +380,89 @@ export default function App() {
     } : t));
   };
 
+  const activeHookSyncError = 
+    (classes as any)?.syncError || 
+    (tasks as any)?.syncError || 
+    (performance as any)?.syncError || 
+    (templates as any)?.syncError || 
+    (calendarEvents as any)?.syncError || 
+    (timetable as any)?.syncError;
+
+  const isOfflineOrError = !isOnline || !!syncIssue || !!activeHookSyncError;
+
+  const offlineBanner = (
+    <>
+      {isOfflineOrError && !isBannerDismissed && (
+        <div className="w-full bg-[#9A3412] text-amber-50 px-4 py-2.5 sm:px-6 shadow-sm border-b border-orange-950/20 flex items-center justify-between gap-3 text-xs sm:text-sm z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-1.5 rounded-lg bg-white/10 shrink-0">
+              <WifiOff className="w-4 h-4 text-amber-200" />
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 min-w-0">
+              <span className="font-bold whitespace-nowrap text-white flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-300 animate-pulse inline-block" />
+                離線模式 (Offline Mode)
+              </span>
+              <span className="opacity-90 truncate sm:whitespace-normal">
+                {!isOnline 
+                  ? "目前網路連線中斷，變更無法即時儲存至雲端。成績與資料已安全保存在本機，恢復連線後將自動同步。" 
+                  : (syncIssue?.message || activeHookSyncError || "雲端寫入暫時受阻，資料已妥善保存在本機快取中，系統將自動重試寫入。")}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleRetrySync}
+              disabled={isRetryingSync}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/15 hover:bg-white/25 active:bg-white/30 text-white font-medium text-xs transition-colors cursor-pointer"
+              title="重新檢查連線並嘗試儲存"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRetryingSync ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{isRetryingSync ? '重試中...' : '重試連線'}</span>
+            </button>
+            <button
+              onClick={() => setIsBannerDismissed(true)}
+              className="p-1 rounded-md hover:bg-white/10 text-white/80 hover:text-white transition-colors cursor-pointer"
+              title="關閉提示"
+              aria-label="關閉提示"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {justReconnected && !isOfflineOrError && (
+        <div className="w-full bg-[#15803D] text-green-50 px-4 py-2 sm:px-6 shadow-sm border-b border-green-800/30 flex items-center justify-between gap-3 text-xs sm:text-sm z-50 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-200 shrink-0" />
+            <span className="font-medium text-white">
+              網路連線已恢復！已自動將本機暫存資料同步至 Firebase 雲端。
+            </span>
+          </div>
+          <button
+            onClick={() => setJustReconnected(false)}
+            className="p-1 rounded-md hover:bg-white/10 text-white/80 hover:text-white transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {isOfflineOrError && isBannerDismissed && (
+        <button
+          onClick={() => setIsBannerDismissed(false)}
+          className="fixed top-3 right-4 z-50 bg-[#9A3412] text-amber-50 hover:bg-[#831843] px-3 py-1.5 rounded-full shadow-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border border-white/20 animate-in fade-in"
+          title="點擊展開離線模式提醒"
+        >
+          <span className="w-2 h-2 rounded-full bg-amber-300 animate-pulse" />
+          <WifiOff className="w-3.5 h-3.5 text-amber-200" />
+          <span>離線模式中 (點擊展開)</span>
+        </button>
+      )}
+    </>
+  );
+
   return (
     <>
       {hasLocalData && (
@@ -345,6 +504,7 @@ export default function App() {
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         classes={classes}
+        banner={offlineBanner}
       >
       {activeTab === 'dashboard' && (
         <DashboardView 

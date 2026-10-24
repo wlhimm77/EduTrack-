@@ -9,9 +9,10 @@ interface LayoutProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   classes?: ClassGroup[];
+  banner?: ReactNode;
 }
 
-export function Layout({ children, activeTab, setActiveTab, classes = [] }: LayoutProps) {
+export function Layout({ children, activeTab, setActiveTab, classes = [], banner }: LayoutProps) {
   const navItems = [
     { id: 'dashboard', label: '儀表板', icon: LayoutDashboard },
     { id: 'syllabus', label: '課程進度', icon: BookOpen },
@@ -23,9 +24,11 @@ export function Layout({ children, activeTab, setActiveTab, classes = [] }: Layo
   ];
 
   return (
-    <div className="flex h-screen bg-[#F9F6F2] text-[#4A443F] overflow-hidden font-sans selection:bg-[#E9E3DB] selection:text-[#3D3833]">
-      {/* Desktop/iPad Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 bg-[#E9E3DB] border-r border-[#D9CEC1] h-full shrink-0 z-20">
+    <div className="flex flex-col h-screen bg-[#F9F6F2] text-[#4A443F] overflow-hidden font-sans selection:bg-[#E9E3DB] selection:text-[#3D3833]">
+      {banner}
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Desktop/iPad Sidebar */}
+        <aside className="hidden md:flex flex-col w-64 bg-[#E9E3DB] border-r border-[#D9CEC1] h-full shrink-0 z-20">
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#88968A] flex items-center justify-center text-white font-bold shadow-sm">
@@ -99,6 +102,7 @@ export function Layout({ children, activeTab, setActiveTab, classes = [] }: Layo
           {children}
         </div>
       </main>
+      </div>
 
       {/* Mobile/iPhone Bottom Tab Bar */}
       <nav className="md:hidden fixed bottom-0 w-full bg-[#E9E3DB]/95 backdrop-blur-lg border-t border-[#D9CEC1] flex justify-around items-center pt-2 pb-6 px-1 z-40 shadow-[0_-8px_30px_rgba(0,0,0,0.04)] overflow-x-auto">
